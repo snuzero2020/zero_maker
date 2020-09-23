@@ -1,0 +1,19 @@
+<launch>
+  <arg name="event_mode" default="timer" />
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find gazebo_domain_randomizer)/worlds/demo.world" />
+    <arg name="gui" value="false" />
+  </include>
+  <node name="gazebo_gui" pkg="gazebo_domain_randomizer" type="gzclient" respawn="false" output="screen" />
+  <include file="$(find gazebo_domain_randomizer)/launch/domain_randomizer.launch">
+    <arg name="model_name" default="double_pendulum_with_base" />
+    <arg name="event_mode" default="$(arg event_mode)" />
+  </include>
+<!--param name="wall" command="cat $(find camera_tutorial)/urdf/grey_wall/model.sdf"/-->
+<!--node name="spawn_urdf_w1" pkg="gazebo_ros" type="spawn_model" args="-x 0.0 -y 3.0 -z 0.0 -sdf -param wall -model wall1" respawn="false" output="screen"/-->
+<!--node name="spawn_urdf_w2" pkg="gazebo_ros" type="spawn_model" args="-x 3.0 -y 0.0 -z 0.0 -Y 1.57 -sdf -param wall -model wall2" respawn="false" output="screen"/-->
+<param name="camera_description" command="cat $(find camera_tutorial)/urdf/depth_camera.sdf"/>
+<node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-x 0.0 -y 0.0 -z 7.0 -P 1.57 -Y 1.57 -sdf -param camera_description -model depth_camera" respawn="false" output="screen"/>
+
+
+</launch>

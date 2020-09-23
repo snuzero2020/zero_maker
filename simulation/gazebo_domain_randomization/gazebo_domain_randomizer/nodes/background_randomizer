@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+from string import Template
+import numpy as np
+import rospy
+from geometry_msgs.msg import Pose, Point, Quaternion
+from gazebo_msgs.srv import SpawnModel, SpawnModelRequest
+from gazebo_msgs.srv import DeleteModel, DeleteModelRequest
+from tf.transformations import quaternion_from_euler
+import math
+import random
+
+PI = math.pi
+
+_obj_sdf = """\
+<?xml version='1.0'?>
+<sdf version="1.4">
+<model name=$model_name>
+  <static>true</static>
+    <link name="link">
+      <visual name="visual">
+        <geometry>$obj_shape</geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>
+"""
+
+_shape_list = {'house_1': Template("<mesh><uri>model://houwe_1/meshes/house_1.dae</uri></mesh>"),
+               'house_2': Template("<mesh><uri>model://houwe_2/meshes/house_2.dae</uri></mesh>"),
+               'house_3': Template("<mesh><uri>model://houwe_3/meshes/house_3.dae</uri></mesh>")}
+
+
+
+class ShapesRandomizer:
+    def __init__(self, position_range, orientation_range, size_range=[0.1, 0.5],
+                 max_num_model=1,
+                 gazebo_ns='/gazebo'):
+        self._sdf_temp = Template(_obj_sdf)
+        self._spawn_model = rospy.ServiceProxy(gazebo_ns + '/spawn_sdf_model', SpawnModel)
+        self._delete_model = rospy.ServiceProxy(gazebo_ns + '/delete_model', DeleteModel)
+        self._obj_names = ['background' + str(i) for i in range(max_num_model)]
+        self._spawned_objs = set()
+        self._size_range = size_range
+        self._position_range = position_range
+        self._orientation_range = orientation_range
+
+    def callback(self, event):
+        req = SpawnModelRequest()
+        obj_name = np.random.choice(self._obj_names)
+        req.model_name = obj_name
+        if obj_name in self._spawned_objs:
+            try:
+                self._delete_model(DeleteModelRequest(obj_name))
+            except rospy.ServiceException, e:
+                pass            
+        shape_no = np.random.choice(3)
+        if shape_no == 0:
+            shape_sdf = _shape_list['house_1'].substitute()
+        elif shape_no == 1:
+            shape_sdf = _shape_list['house_2'].substitute()
+        else:
+            shape_sdf = _shape_list['house_3'].substitute()
+        req.model_xml = self._sdf_temp.substitute(model_name=obj_name,
+                                                  obj_shape=shape_sdf)
+        r = random.uniform(self._orientation_range['r']['min'], self._orientation_range['r']['max'])
+        p = random.uniform(self._orientation_range['p']['min'], self._orientation_range['p']['max'])
+        y = random.uniform(self._orientation_range['y']['min'], self._orientation_range['y']['max'])
+        q = quaternion_from_euler(r,p,y)
+        req.initial_pose = Pose(position=Point(*np.random.uniform([self._position_range['x']['min'],
+                                                                   self._position_range['y']['min'],
+                                                                   self._position_range['z']['min']],
+                                                                  [self._position_range['x']['max'],
+                                                                   self._position_range['y']['max'],
+                                                                   self._position_range['z']['max']])),
+                                                                   orientation=Quaternion(q[0],q[1],q[2],q[3]))
+        rospy.logdebug("Spawn model sdf: " + req.model_xml)
+        try:
+            res = self._spawn_model(req)
+            if not res.success:
+                rospy.logwarn(res.status_message)
+            else:
+                self._spawned_objs.add(obj_name)
+        except rospy.ServiceException, e:
+            rospy.logerr("Service call failed: %s" % e)
+            pass
+
+if __name__ == "__main__":
+    import argparse
+    from std_msgs.msg import Empty
+    parser = argparse.ArgumentParser(description='Shape randomizer')
+    parser.add_argument('-d', '--duration', type=float, default=20.0, help='Timer duration.')
+    parser.add_argument('--gazebo_ns', type=str, default='/gazebo', help='Gazebo namespace.')
+    parser.add_argument('-e', '--event_mode', type=str, default='timer', choices=['timer', 'trigger'], help='Timer duration.')
+    args = parser.parse_args(rospy.myargv()[1:])
+
+    rospy.init_node("shapes_randomizer")
+    position_range = {}
+    orientation_range = {}
+    position_range['x'] = rospy.get_param("~position_range/x", {'min': 20, 'max': 30})
+    position_range['y'] = rospy.get_param("~position_range/y", {'min': -1.6, 'max': 1.6})
+    position_range['z'] = rospy.get_param("~position_range/z", {'min': -2, 'max': 2})
+    orientation_range['r'] = rospy.get_param("~orientation_range/r", {'min': -PI, 'max': PI})
+    orientation_range['p'] = rospy.get_param("~orientation_range/p", {'min': -PI, 'max': PI})
+    orientation_range['y'] = rospy.get_param("~orientation_range/y", {'min': -PI, 'max': PI})
+    randomizer = ShapesRandomizer(position_range, orientation_range, gazebo_ns=args.gazebo_ns)
+    if args.event_mode == 'timer':
+        rospy.Timer(rospy.Duration(args.duration), randomizer.callback)
+    elif args.event_mode == 'trigger':
+        rospy.Subscriber('randomizer/trigger', Empty, randomizer.callback)
+    else:
+        raise ValueError('Unknown event_mode: %s' % args.event_mode)
+    rospy.spin()

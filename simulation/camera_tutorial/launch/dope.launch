@@ -1,0 +1,6 @@
+<launch>
+  <arg name="config" default="$(find camera_tutorial)/configs/config_pose.yaml"/>
+  <node name="dope" pkg="dope" type="dope" output="screen" clear_params="true">
+    <rosparam file="$(arg config)"/>
+  </node>
+</launch>

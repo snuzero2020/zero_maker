@@ -173,7 +173,7 @@ class LaneNet(nn.Module):
     def __init__(self):
         super(LaneNet, self).__init__()
 
-        self.seg_loss = nn.CrossEntropyLoss()
+        self.bin_loss = nn.CrossEntropyLoss()
         self.scale_var = 1
         self.scale_dist = 1 
         self.scale_reg = 0.001
@@ -203,50 +203,25 @@ class LaneNet(nn.Module):
 
         # Stage 3 - Encoder
         self.segmentation_regular3_0 = RegularBottleneck(128, padding = 1, dropout_prob = 0.05)
-        self.cluster_regular3_0 = RegularBottleneck(128, padding = 1, dropout_prob = 0.05)
-
         self.segmentation_dilated3_1 = RegularBottleneck(128, dilation = 2, padding = 2, dropout_prob = 0.05)
-        self.cluster_dilated3_1 = RegularBottleneck(128, dilation = 2, padding = 2, dropout_prob = 0.05)
-
         self.segmentation_asymmetric3_2 = RegularBottleneck(128, kernel_size = 5, padding = 2, asymmetric = True, dropout_prob = 0.05)
-        self.cluster_asymmetric3_2 = RegularBottleneck(128, kernel_size = 5, padding = 2, asymmetric = True, dropout_prob = 0.05)
-
         self.segmentation_dilated3_3 = RegularBottleneck(128, dilation = 4, padding = 4, dropout_prob = 0.05)
-        self.cluster_dilated3_3 = RegularBottleneck(128, dilation = 4, padding = 4, dropout_prob = 0.05)
-
         self.segmentation_regular3_4 = RegularBottleneck(128, padding = 1, dropout_prob = 0.05)
-        self.cluster_regular3_4 = RegularBottleneck(128, padding = 1, dropout_prob = 0.05)
-
         self.segmentation_dilated3_5 = RegularBottleneck(128, dilation = 8, padding = 8, dropout_prob = 0.05)
-        self.cluster_dilated3_5 = RegularBottleneck(128, dilation = 8, padding = 8, dropout_prob = 0.05)
-
         self.segmentation_asymmetric3_6 = RegularBottleneck(128, kernel_size = 5, padding = 2, asymmetric = True, dropout_prob = 0.05)
-        self.cluster_asymmetric3_6 = RegularBottleneck(128, kernel_size = 5, padding = 2, asymmetric = True, dropout_prob = 0.05)
-
         self.segmentation_dilated3_7 = RegularBottleneck(128, dilation = 16, padding = 16, dropout_prob = 0.05)
-        self.cluster_dilated3_7 = RegularBottleneck(128, dilation = 16, padding = 16, dropout_prob = 0.05)
 
         # Stage 4 - Decoder
         self.segmentation_upsample4_0 = UpsamplingBottleneck(128, 64, dropout_prob = 0.05)
-        self.cluster_upsample4_0 = UpsamplingBottleneck(128, 64, dropout_prob = 0.05)
-
         self.segmentation_regular4_1 = RegularBottleneck(64, padding = 1, dropout_prob = 0.05)
-        self.cluster_regular4_1 = RegularBottleneck(64, padding = 1, dropout_prob = 0.05)
-
         self.segmentation_regular4_2 = RegularBottleneck(64, padding = 1, dropout_prob = 0.05)
-        self.cluster_regular4_2 = RegularBottleneck(64, padding = 1, dropout_prob = 0.05)
         
         # Stage 5 - Decoder
         self.segmentation_upsample5_0 = UpsamplingBottleneck(64, 16, dropout_prob = 0.05)
-        self.cluster_upsample5_0 = UpsamplingBottleneck(64, 16, dropout_prob = 0.05)
-
         self.segmentation_regular5_1 = RegularBottleneck(16, padding = 1, dropout_prob = 0.05)
-        self.cluster_regular5_1 = RegularBottleneck(16, padding =1, dropout_prob = 0.05)
-
         self.segmentation_transposed_conv = nn.ConvTranspose2d(16, 2, kernel_size = 3, stride = 2, padding = 1, output_padding = 1, bias = False)
-        self.cluster_transposed_conv = nn.ConvTranspose2d(16, 3, kernel_size = 3, stride = 2, padding =1, output_padding = 1, bias = False)
     
-    def forward(self, x, segLabel = None):
+    def forward(self, x, binLabel = None):
         # Stage 0 - Initial Block
         x = self.initial_block(x)
 
@@ -278,110 +253,28 @@ class LaneNet(nn.Module):
         seg = self.segmentation_asymmetric3_6(seg)
         seg = self.segmentation_dilated3_7(seg)
 
-        cluster = self.cluster_regular3_0(x)
-        cluster = self.cluster_dilated3_1(cluster)
-        cluster = self.cluster_asymmetric3_2(cluster)
-        cluster = self.cluster_dilated3_3(cluster)
-        cluster = self.cluster_regular3_4(cluster)
-        cluster = self.cluster_dilated3_5(cluster)
-        cluster = self.cluster_asymmetric3_6(cluster)
-        cluster = self.cluster_dilated3_7(cluster)
-
         # Stage 4 - Decoder
         seg = self.segmentation_upsample4_0(seg, max_indices2_0)
         seg = self.segmentation_regular4_1(seg)
         seg = self.segmentation_regular4_2(seg)
-
-        cluster = self.cluster_upsample4_0(cluster, max_indices2_0)
-        cluster = self.cluster_regular4_1(cluster)
-        cluster = self.cluster_regular4_2(cluster)
 
         # Stage 5 - Decoder
         seg = self.segmentation_upsample5_0(seg, max_indices1_0)
         seg = self.segmentation_regular5_1(seg)
         seg = self.segmentation_transposed_conv(seg)
 
-        cluster = self.cluster_upsample5_0(cluster, max_indices1_0)
-        cluster = self.cluster_regular5_1(cluster)
-        cluster = self.cluster_transposed_conv(cluster)
-
-        pix_embedding = F.relu(cluster)
         binary_seg_ret = F.leaky_relu(seg)
 
-        #binary_seg_ret = torch.squeeze(binary_seg_ret, 1)
 
-        if segLabel is not None:
-            var_loss, dist_loss, reg_loss = self.discriminative_loss(pix_embedding, segLabel)
-            #print(binary_seg_ret.shape)
-            #print(segLabel.shape)
-            segLabel = segLabel.squeeze(1)
-            seg_loss = self.seg_loss(binary_seg_ret, torch.gt(segLabel, 0).type(torch.long))
+        if binLabel is not None:
+            binLabel = binLabel.squeeze(1)
+            bin_loss = self.bin_loss(binary_seg_ret, torch.gt(binLabel, 0).type(torch.long))
 
         else:
-            var_loss = torch.tensor(0, dtype=x.dtype, device=x.device)
-            dist_loss = torch.tensor(0, dtype=x.dtype, device=x.device)
-            seg_loss = torch.tensor(0, dtype=x.dtype, device=x.device)
-            reg_loss = torch.tensor(0, dtype=x.dtype, device=x.device)
+            bin_loss = torch.tensor(0, dtype=x.dtype, device=x.device)
         
-        cluster_loss = var_loss * self.scale_var + dist_loss * self.scale_dist + reg_loss * self.scale_reg
-        total_loss = cluster_loss + seg_loss
 
         return {
-            'pix_embedding' : pix_embedding,
             'binary_seg' : binary_seg_ret,
-            'cluster_loss' : cluster_loss,
-            'seg_loss' : seg_loss,
-            'total_loss' : total_loss
+            'bin_loss' : bin_loss
         }
-    
-    def discriminative_loss(self, embedding, seg_gt):
-        batch_size = embedding.shape[0]
-        
-        var_loss = torch.tensor(0, dtype = embedding.dtype, device = embedding.device)
-        dist_loss = torch.tensor(0, dtype = embedding.dtype, device = embedding.device)
-        reg_loss = torch.tensor(0, dtype = embedding.dtype, device = embedding.device)
-
-        for b in range(batch_size):
-            embedding_b = embedding[b]
-            seg_gt_b = seg_gt[b]
-            seg_gt_b = seg_gt_b.squeeze(0)
-
-            labels = torch.unique(seg_gt_b)
-            labels = labels[labels!=0]
-            num_lanes = len(labels)
-            if num_lanes == 0:
-                _nonsense = embedding.sum()
-                _zero = torch.zeros_like(_nonsense)
-                var_loss = var_loss + _nonsense * _zero
-                dist_loss = dist_loss + _nonsense * _zero
-                reg_loss = reg_loss + _nonsense * _zero
-                continue
-
-            centroid_mean = []
-            for lane_idx in labels:
-                seg_mask_i = (seg_gt_b == lane_idx)
-                if not seg_mask_i.any():
-                    continue
-                embedding_i = embedding_b[:, seg_mask_i]
-
-                mean_i = torch.mean(embedding_i, dim=1)
-                centroid_mean.append(mean_i)
-
-                var_loss = var_loss + torch.mean(F.relu(torch.norm(embedding_i-mean_i.reshape(3, 1), dim = 0) - self.delta_v)**2) / num_lanes
-            centroid_mean = torch.stack(centroid_mean)
-
-            if num_lanes > 1:
-                centroid_mean1 = centroid_mean.reshape(-1, 1, 3)
-                centroid_mean2 = centroid_mean.reshape(1, -1, 3)
-                dist = torch.norm(centroid_mean1-centroid_mean2, dim=2)
-                dist = dist + torch.eye(num_lanes, dtype=dist.dtype ,device=dist.device) * self.delta_d
-
-                dist_loss = dist_loss + torch.sum(F.relu(-dist + self.delta_d)**2) / (num_lanes*(num_lanes-1)) / 2
-            
-            reg_loss = reg_loss + torch.mean(torch.norm(centroid_mean, dim=1))
-
-            var_loss = var_loss / batch_size
-            dist_loss = dist_loss / batch_size
-            reg_loss = reg_loss / batch_size
-
-            return var_loss, dist_loss, reg_loss

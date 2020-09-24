@@ -268,6 +268,10 @@ class LaneNet(nn.Module):
 
         if binLabel is not None:
             binLabel = binLabel.squeeze(1)
+            # print("Result: ")
+            # print(binary_seg_ret.shape)
+            # print("Ground truth: ")
+            # print(torch.gt(binLabel, 0).type(torch.long).shape) // Not sure..
             bin_loss = self.bin_loss(binary_seg_ret, torch.gt(binLabel, 0).type(torch.long))
 
         else:

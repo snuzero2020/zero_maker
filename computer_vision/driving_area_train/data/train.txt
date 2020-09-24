@@ -1,0 +1,12 @@
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0001.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0001.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0002.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0002.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0003.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0003.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0004.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0004.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0006.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0006.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0008.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0008.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0010.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0010.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0011.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0011.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0012.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0012.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0015.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0015.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0016.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0016.png
+/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/img/0017.png /home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/instance/0017.png

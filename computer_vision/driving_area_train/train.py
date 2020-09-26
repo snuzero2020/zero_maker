@@ -11,12 +11,12 @@ from data_loader.dataset import *
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
-    parser.add_argument("--batch_size", type=int, default=1, help="size of each image batch")
+    parser.add_argument("--batch_size", type=int, default=6, help="size of each image batch")
     parser.add_argument("--n_cpu", type=int, default=1, help="number of cpu threads to use during batch generation")
     parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--gradient_accumulations", type=int, default=2, help="number of gradient accums before step")
     parser.add_argument("--checkpoint_interval", type=int, default=1, help="interval between saving model weights")
-    parser.add_argument("--train_path", type=str, default="/home/ayoung/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/train.txt", help = "train.txt path")
+    parser.add_argument("--train_path", type=str, default="/home/snuzero/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/train.txt", help = "train.txt path")
     opt = parser.parse_args()
 
     USE_CUDA = torch.cuda.is_available()

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--img_path", '-i', type=str, default="/home/ayoung/catkin_ws/src/zero_maker/computer_vision/data/img/0001.png", help="Path to demo img")
+    parser.add_argument("--batch_size", type=int, default=1, help="size of each image batch")
     parser.add_argument("--weight_path", '-w', type=str, default="/home/ayoung/catkin_ws/src/zero_maker/computer_vision/checkpoints/ldln_ckpt_99.pth", help="Path to model weights")
     parser.add_argument("--band_width", '-b', type=float, default=1.5, help="Value of delta_v")
     parser.add_argument("--visualize", '-v', action="store_true", default=False, help="Visualize the result")
@@ -22,51 +22,48 @@ if __name__ == "__main__":
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     test_path = opt.test_path
+    BATCH_SIZE = opt.batch_size
 
     dataset = ListDataset(test_path)
-    dataloader = torch.utils.data.DataLoader(dataset, collate_fn=dataset.collate_fn)
-
-    # img = cv2.imread(opt.img_path)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # img = cv2.resize(img, (640, 480))
-    # img_to = transforms.ToTensor()(img)
-    # img_to = torch.stack([img_to]).to(DEVICE)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size= BATCH_SIZE, collate_fn=dataset.collate_fn)
 
     model = LaneNet().to(DEVICE)
     model.load_state_dict(torch.load(opt.weight_path))
     model.eval()
+    totnum = 0
+    accnum = 0
 
     start_time = time.time()
-    for sample in dataloader:
+    for i, sample in enumerate(dataloader):
         img_to = sample['img'].to(DEVICE)
-        # binLabel = Variable(sample['binLabel'].to(DEVICE), requires_grad= False)
         output = model(img_to)
+
         binary_seg = output['binary_seg']
         binary_seg_prob = binary_seg.detach().cpu().numpy()
-        # print(np.count_nonzero(binary_seg_prob))
-        binary_seg_pred = np.argmax(binary_seg_prob, axis = 1)[0]
-        # print(np.count_nonzero(binary_seg_pred))
-        # binary_seg_pred = np.array(binary_seg_pred, dtype = np.uint8)
-        # print(np.count_nonzero(binary_seg_pred))
-        binLabel = sample['binLabel'].detach().cpu().numpy()
-        # print(np.count_nonzero(binLabel))
-        binLabel = binLabel[0][0]
-        print(np.count_nonzero(binLabel))
-        print(binLabel)
-        # binLabel = np.array(binLabel, dtype = np.uint8)
-        print(np.count_nonzero(binLabel))
-        # binLabel = np.stack((binLabel), axis = 2)
-        # binary_seg_pred = np.stack((binary_seg_pred), axis = 2)
-        print(binLabel.shape)
-        print(binary_seg_pred.shape)
-        # plt.imshow(binLabel, "gray")
-        plt.imshow(binary_seg_pred, "gray")
-        plt.show()
-    
-    # img = cv2.addWeighted(src1=seg_img, alpha=0.8, src2=img, beta=1., gamma=0.)
+        binary_seg_pred = np.argmax(binary_seg_prob, axis = 1)
+        # print(binary_seg_pred.shape)
 
-    # print(time.time() - embedding_time)
-    # cv2.imshow("binary_seg_pred", binary_seg_pred)
+        binLabel = sample['binLabel'].detach().cpu().numpy()
+        binLabel[binLabel != 0] = 1
+        binLabel = np.squeeze(binLabel, axis = 1)
+        # print(binLabel.shape)
+
+        totnum += np.count_nonzero(binLabel)
+        for b in range(len(binLabel)):
+            for row in range(len(binLabel[0])):
+                for col in range(len(binLabel[0][0])):
+                    if binLabel[b][row][col] == 1 and binary_seg_pred[b][row][col] == 1:
+                        accnum += 1
+
+        print("Batch {0} completed.".format(i))
+        
+        # print(totnum)
+        # print(accnum)
+        # plt.imshow(binary_seg_pred, "gray")
+        # plt.show()
+
+    print("Duration: {0}, Accuracy: {1}".format((time.time()-start_time), accnum/totnum))
+    
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

@@ -1,10 +1,10 @@
 import os
 import glob
 
-maindir = "/home/snuzero/catkin_ws/src/zero_maker/computer_vision/driving_area_train/data/"
+maindir = "/home/ayoung/catkin_ws/src/zero_maker/computer_vision/test_data/"
 os.chdir(maindir)
 
-ftxt = open("train.txt", "w")
+ftxt = open("test.txt", "w")
 imgnm = sorted(glob.glob(maindir+"img/*"))
 binnm = sorted(glob.glob(maindir+"bin/*"))
 

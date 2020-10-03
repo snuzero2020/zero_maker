@@ -4,6 +4,7 @@
       <uri>model://sun</uri>
     </include>
     <include>
+      <uri>model://office_small</uri>
       <uri>model://ground_plane</uri>
     </include>
     <plugin name="physics_plugin" filename="libgazebo_physics_plugin.so"/>

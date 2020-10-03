@@ -40,12 +40,12 @@
           <!-- Keep this zero, update_rate in the parent <sensor> tag
             will control the frame rate. -->
           <updateRate>20</updateRate>
-          <cameraName>camera_ir</cameraName>
-          <imageTopicName>/camera/color/image_raw</imageTopicName>
-          <cameraInfoTopicName>/camera/color/camera_info</cameraInfoTopicName>
-          <depthImageTopicName>/camera/depth/image_raw</depthImageTopicName>
-          <depthImageCameraInfoTopicName>/camera/depth/camera_info</depthImageCameraInfoTopicName>
-          <pointCloudTopicName>/camera/depth/points</pointCloudTopicName>
+          <cameraName>camera_ir2</cameraName>
+          <imageTopicName>/camera2/color/image_raw</imageTopicName>
+          <cameraInfoTopicName>/camera2/color/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>/camera2/depth/image_raw</depthImageTopicName>
+          <depthImageCameraInfoTopicName>/camera2/depth/camera_info</depthImageCameraInfoTopicName>
+          <pointCloudTopicName>/camera1/depth/points</pointCloudTopicName>
           <frameName>camera_link</frameName>
           <pointCloudCutoff>0.1</pointCloudCutoff>
           <pointCloudCutoffMax>20.0</pointCloudCutoffMax>
@@ -64,3 +64,4 @@
     </link>
   </model>
 </sdf>
+

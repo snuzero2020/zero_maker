@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+from string import Template
+import numpy as np
+import rospy
+from geometry_msgs.msg import Pose, Point, Quaternion
+from std_msgs.msg import Int32
+from gazebo_msgs.srv import GetModelState
+from gazebo_msgs.srv import SetModelState, SetModelStateRequest
+from tf.transformations import quaternion_from_euler
+import math
+import random
+import time
+
+
+PI = math.pi
+
+class CameraRandomizer:
+    def __init__(self, position_range, orientation_range,
+                 gazebo_ns='/gazebo'):
+        self._set_model = rospy.ServiceProxy(gazebo_ns + '/set_model_state', SetModelState)
+        self._position_range = position_range
+        self._orientation_range = orientation_range
+        self.spawned_obj = set()
+
+
+    def callback(self, event):
+          req = SetModelStateRequest()
+          req.model_state.model_name = "depth_camera"
+          r = random.uniform(self._orientation_range['r']['min'], self._orientation_range['r']['max'])
+          p = random.uniform(self._orientation_range['p']['min'], self._orientation_range['p']['max'])
+          y = random.uniform(self._orientation_range['y']['min'], self._orientation_range['y']['max'])            
+          q = quaternion_from_euler(r,p,y)
+          req.model_state.pose = Pose(position=Point(*np.random.uniform([self._position_range['x']['min'],
+                                                                       self._position_range['y']['min'],
+                                                                       self._position_range['z']['min']],
+                                                                      [self._position_range['x']['max'],
+                                                                       self._position_range['y']['max'],
+                                                                       self._position_range['z']['max']])),
+                                                                       orientation=Quaternion(q[0],q[1],q[2],q[3]))
+          try:
+              res = self._set_model(req)
+              if not res.success:
+                  rospy.logwarn(res.status_message)
+          except:
+              #rospy.logerr("Service call failed: %s" %e)
+              pass
+          """
+          try:
+              self._delete_model(DeleteModelRequest(obj_name))
+          except:
+              pass
+          """
+          rospy.sleep(1)
+
+
+if __name__ == "__main__":
+    import argparse
+    from std_msgs.msg import Empty
+    parser = argparse.ArgumentParser(description='Camera randomizer')
+    parser.add_argument('-d', '--duration', type=float, default=2.0, help='Timer duration.')
+    parser.add_argument('--gazebo_ns', type=str, default='/gazebo', help='Gazebo namespace.')
+    parser.add_argument('-e', '--event_mode', type=str, default='timer', choices=['timer', 'trigger'], help='Timer duration.')
+    args = parser.parse_args(rospy.myargv()[1:])
+
+    rospy.init_node("CameraRandomizer")
+    position_range = {}
+    orientation_range = {}
+    position_range['x'] = rospy.get_param("~position_range/x", {'min': -3, 'max': 3})
+    position_range['y'] = rospy.get_param("~position_range/y", {'min': -3, 'max': 3})
+    position_range['z'] = rospy.get_param("~position_range/z", {'min': 6.0, 'max': 6.0})
+    orientation_range['r'] = rospy.get_param("~orientation_range/r", {'min': -PI, 'max': PI})
+    orientation_range['p'] = rospy.get_param("~orientation_range/p", {'min': PI/2 - PI/12, 'max': PI/2 + PI/12})
+    orientation_range['y'] = rospy.get_param("~orientation_range/y", {'min': PI/2 - PI/12, 'max': PI/2 + PI/12})
+    randomizer = CameraRandomizer(position_range, orientation_range, gazebo_ns=args.gazebo_ns)
+    if args.event_mode == 'timer':
+        rospy.Timer(rospy.Duration(args.duration), randomizer.callback)
+    elif args.event_mode == 'trigger':
+        rospy.Subscriber('randomizer/trigger', Empty, randomizer.callback)
+    else:
+        raise ValueError('Unknown event_mode: %s' % args.event_mode)
+    rospy.spin()

@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+import roslib
+#roslib.load_manifest('kinect_pylistener')
+import sys
+import rospy
+import cv2
+from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from sensor_msgs.msg import PointCloud2
+from gazebo_msgs.msg import ModelStates
+from cv_bridge import CvBridge, CvBridgeError
+import time
+import numpy as np
+import message_filters
+import numpy as np
+#import ros_numpy
+import sensor_msgs.point_cloud2 as pc2
+from struct import pack, unpack
+from scipy.spatial.transform import Rotation as R
+from tf.transformations import euler_from_quaternion
+import math
+i = 1
+horizontal_pix = 640
+vertical_pix = 480
+vert_fov = 45.6*math.pi/180
+im_size = horizontal_pix*vertical_pix
+
+
+class image_converter:
+
+  def __init__(self):
+	self.bridge = CvBridge()
+	image_sub = message_filters.Subscriber("/camera/color/image_raw", Image)
+	point_sub = message_filters.Subscriber("/camera/depth/points", PointCloud2)
+	model_poses = message_filters.Subscriber("/gazebo/model_states", ModelStates)
+	self.ts = message_filters.ApproximateTimeSynchronizer([image_sub, point_sub, model_poses], 1, 1, allow_headerless=True)
+	self.ts.registerCallback(self.callback)
+  	rospy.loginfo("initialized")
+  def callback(self,rgb_data, point_data, model_poses):
+	global i
+	
+	try:
+	  n = 0
+	  for k in range(len(model_poses.name)):
+		  if model_poses.name[k] == "depth_camera":
+			  n = k
+			  break
+	  image = self.bridge.imgmsg_to_cv2(rgb_data, "bgr8")
+	  p = [1]*im_size
+	  X = []
+	  Y = []
+	  Z = []
+	  C = []
+	  j = 0
+	  
+	  print(model_poses.name[n])
+	  orient_q = model_poses.pose[n].orientation
+	  orient_list = [orient_q.x, orient_q.y, orient_q.z, orient_q.w]
+	  print(orient_list)
+	  (roll, pitch, yaw) = euler_from_quaternion(orient_list)
+	  #r = R.from_quat(orient_list)
+	  #r_matrix = np.array(r.as_dcm())
+	  cr = np.cos(roll)
+	  cy = np.cos(yaw)
+	  cp = np.cos(pitch)
+	  sr = np.sin(roll)
+	  sy = np.sin(yaw)
+	  sp = np.sin(pitch)
+	  #conversion_matrix = np.linalg.inv(r_matrix)
+	  #distance = []
+	  #coordinate = []
+	  print((roll, pitch, yaw))
+	  for point in pc2.read_points(point_data, field_names={'x','y','z','rgb'}, skip_nans=True):
+		rgb = pack('f', point[3])
+		rgb = unpack('i', rgb)[0]
+		r = (rgb>>16)&0x0000ff
+		g = (rgb>>8) & 0x0000ff
+		b = (rgb) & 0x0000ff
+		coor = np.array([point[0], point[1], point[2]])
+		#array = np.matmul(conversion_matrix, coor)
+		#distance.append(cp*cr*point[0] + cp*sr*point[1] - sp*point[2])
+		#coordinate.append(coor)
+		#height = (np.dot(coor,coor)**0.5)*np.sin(pitch + (((j/480)-240)/480.0)*vert_fov)
+		height = (np.dot(coor,coor)**0.5)*np.sin(pitch + (math.atan2(coor[1],coor[2])))
+		if (height > 1.48).any():
+			X.append(point[0])
+			Y.append(point[1])
+			Z.append(point[2])
+			C.append([r,g,b])
+			p[j] = 0
+		j += 1
+		#if (j%640 == 1):
+			#rospy.loginfo("line: " + str(j/640) +"  x:"+ str(coor[0])+ "   y:"+str(coor[1])+ "   z:"+str(coor[2])+ "  /  angle: " + str(pitch + (math.atan2(coor[1], coor[2]))))
+	  point_label = np.reshape(p, (-1,640))
+	  pl = np.array(point_label)
+	  color_array = np.array(image, dtype=np.uint8)
+	  rospy.loginfo(image.shape)
+	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/color/' +'camera_rgb_' + str(format(i, '03d')) + '.jpg', color_array)
+	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/point_label_img/' +'point_label_img_' + str(format(i, '03d')) + '.pgm', pl*255)
+	  i += 1
+	  rospy.loginfo("image saved")
+	except CvBridgeError as e:
+	  print(e)
+
+def main(args):
+  rospy.loginfo("point_cloud2 node starting")
+  ic = image_converter()
+  rospy.init_node('image_converter', anonymous=True)
+  try:
+	rospy.spin()
+  except KeyboardInterrupt:
+	print("Shutting down")
+  cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+	main(sys.argv)
+	

@@ -5,12 +5,12 @@
     <arg name="gui" value="false" />
   </include>
   <node name="gazebo_gui" pkg="gazebo_domain_randomizer" type="gzclient" respawn="false" output="screen" />
-  <include file="$(find gazebo_domain_randomizer)/launch/domain_randomizer.launch">
+  <include file="$(find gazebo_domain_randomizer)/launch/domain_1.launch">
     <arg name="model_name" default="turtlebot3_world"/>
     <arg name="event_mode" default="$(arg event_mode)" />
   </include>
 <param name="camera_description" command="cat $(find camera_tutorial)/urdf/depth_camera.sdf"/>
-<node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-x 0.0 -y 0.0 -z 6.0 -P 1.57 -Y 1.57 -sdf -param camera_description -model depth_camera" respawn="false" output="screen"/>
+<node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-x 2.8 -y 0.0 -z 1.5 -P 0.8 -Y 3.14 -sdf -param camera_description -model depth_camera" respawn="false" output="screen"/>
 
 
 </launch>

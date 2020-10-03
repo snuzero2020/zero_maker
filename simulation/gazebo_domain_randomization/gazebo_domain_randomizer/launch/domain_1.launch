@@ -6,9 +6,8 @@
   <group ns="randomizers">
     <node pkg="gazebo_domain_randomizer" name="light_randomizer" type="light_randomizer" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
     <node pkg="gazebo_domain_randomizer" name="shapes_randomizer_driving_area" type="shapes_randomizer_driving_area" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
-    <node pkg="gazebo_domain_randomizer" name="sky_randomizer" type="sky_randomizer" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_gui_ns)" output="screen" />
     <node pkg="gazebo_domain_randomizer" name="physics_properties_randomizer" type="physics_properties_randomizer" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
     <node pkg="gazebo_domain_randomizer" name="marked_image_cv2" type="marked_image_cv2" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
-     <node pkg="gazebo_domain_randomizer" name="depth_cv2" type="depth_cv2" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
+    <node pkg="gazebo_domain_randomizer" name="point_cloud2" type="point_cloud2" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
   </group>
 </launch>

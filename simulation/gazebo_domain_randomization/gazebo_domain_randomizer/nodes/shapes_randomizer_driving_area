@@ -103,7 +103,7 @@ _material_list = ['Gazebo/White',
 
 class ShapesRandomizer:
     def __init__(self, position_range, orientation_range, size_range=[0.1, 0.5],
-                 max_num_model=20,
+                 max_num_model=15,
                  gazebo_ns='/gazebo'):
         self._sdf_temp = Template(_obj_sdf)
         self._spawn_model = rospy.ServiceProxy(gazebo_ns + '/spawn_sdf_model', SpawnModel)
@@ -185,8 +185,8 @@ if __name__ == "__main__":
     rospy.init_node("shapes_randomizer")
     position_range = {}
     orientation_range = {}
-    position_range['x'] = rospy.get_param("~position_range/x", {'min': -4.0, 'max': 4.0})
-    position_range['y'] = rospy.get_param("~position_range/y", {'min': -4.0, 'max': 4.0})
+    position_range['x'] = rospy.get_param("~position_range/x", {'min': -3.0, 'max': 3.0})
+    position_range['y'] = rospy.get_param("~position_range/y", {'min': -3.0, 'max': 3.0})
     position_range['z'] = rospy.get_param("~position_range/z", {'min': 0.0, 'max': 0.0})
     orientation_range['r'] = rospy.get_param("~orientation_range/r", {'min': 0, 'max': 0})
     orientation_range['p'] = rospy.get_param("~orientation_range/p", {'min': 0, 'max': 0})

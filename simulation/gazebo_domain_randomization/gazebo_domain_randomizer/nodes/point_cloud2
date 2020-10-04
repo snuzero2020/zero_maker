@@ -81,8 +81,8 @@ class image_converter:
 		#distance.append(cp*cr*point[0] + cp*sr*point[1] - sp*point[2])
 		#coordinate.append(coor)
 		#height = (np.dot(coor,coor)**0.5)*np.sin(pitch + (((j/480)-240)/480.0)*vert_fov)
-		height = (np.dot(coor,coor)**0.5)*np.sin(pitch + (math.atan2(coor[1],coor[2])))
-		if (height > 1.48).any():
+		height = ((point[1]**2+point[2]**2)**0.5)*np.sin(pitch + (math.atan2(coor[1],coor[2])))
+		if (height > 1.49).any():
 			X.append(point[0])
 			Y.append(point[1])
 			Z.append(point[2])

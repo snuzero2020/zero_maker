@@ -19,7 +19,10 @@ from struct import pack, unpack
 from scipy.spatial.transform import Rotation as R
 from tf.transformations import euler_from_quaternion
 import math
-i = 11668
+#-------------------------------------------#
+# if there is an error relaunch after setting i
+i = 0
+#-------------------------------------------#
 horizontal_pix = 640
 vertical_pix = 480
 vert_fov = 45.6*math.pi/180
@@ -29,20 +32,23 @@ im_size = horizontal_pix*vertical_pix
 class image_converter:
 
   def __init__(self):
-	self.bridge = CvBridge()
-	image_sub = message_filters.Subscriber("/camera/color/image_raw", Image)
-	point_sub = message_filters.Subscriber("/camera/depth/points", PointCloud2)
+	self.bridge = CvBridge()	
 	model_poses = message_filters.Subscriber("/gazebo/model_states", ModelStates)
-	self.ts = message_filters.ApproximateTimeSynchronizer([image_sub, point_sub, model_poses], 1, 1, allow_headerless=True)
-	self.ts.registerCallback(self.callback)
-  	rospy.loginfo("initialized")
+	
+	image_sub1 = message_filters.Subscriber("/camera1/color/image_raw", Image)
+	point_sub1 = message_filters.Subscriber("/camera1/depth/points", PointCloud2)
+	self.ts1 = message_filters.ApproximateTimeSynchronizer([image_sub1, point_sub1, model_poses], 1, 1, allow_headerless=True)
+	self.ts1.registerCallback(self.callback)
+  	
+	rospy.loginfo("initialized")
+  
   def callback(self,rgb_data, point_data, model_poses):
 	global i
 	
 	try:
 	  n = 0
 	  for k in range(len(model_poses.name)):
-		  if model_poses.name[k] == "depth_camera":
+		  if model_poses.name[k] == "depth_camera1":
 			  n = k
 			  break
 	  image = self.bridge.imgmsg_to_cv2(rgb_data, "bgr8")
@@ -95,22 +101,21 @@ class image_converter:
 	  pl = np.array(point_label)
 	  color_array = np.array(image, dtype=np.uint8)
 	  rospy.loginfo(image.shape)
-	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/color/' +'camera_rgb_' + str(format(i, '03d')) + '.jpg', color_array)
-	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/point_label_img/' +'point_label_img_' + str(format(i, '03d')) + '.pgm', pl*255)
+	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/cam1/color/'  +'camera_rgb_' + str(i).zfill(5) + '.jpg', color_array)
+	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/cam1/point_label_img/' +'point_label_img_' + str(i).zfill(5) + '.jpg', pl*255)
 	  i += 1
 	  rospy.loginfo("image saved")
 	except CvBridgeError as e:
 	  print(e)
 
 def main(args):
-  rospy.loginfo("point_cloud2 node starting")
+  rospy.loginfo("pc_cam1 node starting")
   ic = image_converter()
   rospy.init_node('image_converter', anonymous=True)
   try:
 	rospy.spin()
   except KeyboardInterrupt:
 	print("Shutting down")
-  cv2.destroyAllWindows()
 
 if __name__ == '__main__':
 	main(sys.argv)

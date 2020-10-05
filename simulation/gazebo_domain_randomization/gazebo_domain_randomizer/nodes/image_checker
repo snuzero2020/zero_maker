@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import roslib
+roslib.load_manifest('gazebo_domain_randomizer')
+import sys
+import rospy
+import cv2
+from std_msgs.msg import String
+from sensor_msgs.msg import Image, PointCloud2
+from cv_bridge import CvBridge, CvBridgeError
+
+class image_converter:
+
+  def __init__(self):
+    self.image_pub = rospy.Publisher("/marked_image_topic",Image)
+    self.bridge = CvBridge()
+    self.image_sub1 = rospy.Subscriber("/camera1/color/image_raw",Image,self.callback1)
+    self.image_sub2 = rospy.Subscriber("/camera2/color/image_raw",Image,self.callback2)
+    self.image_sub3 = rospy.Subscriber("/camera3/color/image_raw",Image,self.callback3)
+
+  def callback1(self,data):
+    try:
+      cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+    except CvBridgeError as e:
+      print(e)
+
+    (rows,cols,channels) = cv_image1.shape
+    if cols > 60 and rows > 60 :
+      cv2.circle(cv_image1, (50,50), 10, 255)
+
+    cv2.imshow("Image window1", cv_image1)
+    cv2.waitKey(3)
+
+  def callback2(self,data):
+    try:
+      cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+    except CvBridgeError as e:
+      print(e)
+
+    (rows,cols,channels) = cv_image2.shape
+    if cols > 60 and rows > 60 :
+      cv2.circle(cv_image2, (50,50), 10, 255)
+
+    cv2.imshow("Image window2", cv_image2)
+    cv2.waitKey(3)
+
+  def callback3(self,data):
+    try:
+      cv_image3 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+    except CvBridgeError as e:
+      print(e)
+
+    (rows,cols,channels) = cv_image3.shape
+    if cols > 60 and rows > 60 :
+      cv2.circle(cv_image3, (50,50), 10, 255)
+
+    cv2.imshow("Image window3", cv_image3)
+    cv2.waitKey(3)
+
+
+
+def main(args):
+  rospy.init_node('image_converter', anonymous=True)
+  ic = image_converter()
+  try:
+    rospy.spin()
+  except KeyboardInterrupt:
+    print("Shutting down")
+  cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    main(sys.argv)
+

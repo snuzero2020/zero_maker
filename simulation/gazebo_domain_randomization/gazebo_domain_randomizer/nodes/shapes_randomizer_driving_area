@@ -102,8 +102,8 @@ _material_list = ['Gazebo/White',
                   'Gazebo/EpuckGold']
 
 class ShapesRandomizer:
-    def __init__(self, position_range, orientation_range, size_range=[0.1, 0.5],
-                 max_num_model=15,
+    def __init__(self, position_range, orientation_range, size_range=[0.1, 0.3],
+                 max_num_model=9,
                  gazebo_ns='/gazebo'):
         self._sdf_temp = Template(_obj_sdf)
         self._spawn_model = rospy.ServiceProxy(gazebo_ns + '/spawn_sdf_model', SpawnModel)
@@ -120,7 +120,8 @@ class ShapesRandomizer:
         req.model_name = obj_name
         if obj_name in self._spawned_objs:
             try:
-                self._delete_model(DeleteModelRequest(obj_name))
+				self._delete_model(DeleteModelRequest(obj_name))
+				self._spawned_objs.remove(obj_name)
             except rospy.ServiceException, e:
                 pass            
         rospy.sleep(0.2)
@@ -162,15 +163,26 @@ class ShapesRandomizer:
                                                                    self._position_range['z']['max']])),
                                                                    orientation=Quaternion(q[0],q[1],q[2],q[3]))
         rospy.logdebug("Spawn model sdf: " + req.model_xml)
-        try:
-            res = self._spawn_model(req)
-            if not res.success:
-                rospy.logwarn(res.status_message)
-            else:
-                self._spawned_objs.add(obj_name)
-        except:
+        if req.model_name not in self._spawned_objs:
+			try:
+				res = self._spawn_model(req)
+				if not res.success:
+					rospy.logwarn(res.status_message)
+				else:
+					self._spawned_objs.add(obj_name)
+			except:
+				pass
+		
+		#try:
+            #res = self._spawn_model(req)
+            #if not res.success:
+                #rospy.logwarn(res.status_message)
+            #else:
+                #self._spawned_objs.add(obj_name)
+        #except:
             #rospy.logerr("Service call failed: %s" % e)
-            pass
+            #pass
+			
         rospy.sleep(0.2)
 
 if __name__ == "__main__":
@@ -185,8 +197,8 @@ if __name__ == "__main__":
     rospy.init_node("shapes_randomizer")
     position_range = {}
     orientation_range = {}
-    position_range['x'] = rospy.get_param("~position_range/x", {'min': -3.0, 'max': 3.0})
-    position_range['y'] = rospy.get_param("~position_range/y", {'min': -3.0, 'max': 3.0})
+    position_range['x'] = rospy.get_param("~position_range/x", {'min': -2.0, 'max': 2.0})
+    position_range['y'] = rospy.get_param("~position_range/y", {'min': -2.0, 'max': 2.0})
     position_range['z'] = rospy.get_param("~position_range/z", {'min': 0.0, 'max': 0.0})
     orientation_range['r'] = rospy.get_param("~orientation_range/r", {'min': 0, 'max': 0})
     orientation_range['p'] = rospy.get_param("~orientation_range/p", {'min': 0, 'max': 0})

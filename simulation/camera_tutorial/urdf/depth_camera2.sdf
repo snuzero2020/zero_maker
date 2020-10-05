@@ -45,7 +45,7 @@
           <cameraInfoTopicName>/camera2/color/camera_info</cameraInfoTopicName>
           <depthImageTopicName>/camera2/depth/image_raw</depthImageTopicName>
           <depthImageCameraInfoTopicName>/camera2/depth/camera_info</depthImageCameraInfoTopicName>
-          <pointCloudTopicName>/camera1/depth/points</pointCloudTopicName>
+          <pointCloudTopicName>/camera2/depth/points</pointCloudTopicName>
           <frameName>camera_link</frameName>
           <pointCloudCutoff>0.1</pointCloudCutoff>
           <pointCloudCutoffMax>20.0</pointCloudCutoffMax>

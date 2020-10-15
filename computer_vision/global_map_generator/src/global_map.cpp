@@ -58,12 +58,23 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
     cv::Mat right_warped = birdeye(M_right, img_right);
     cv::Mat left_warped = birdeye(M_left, img_left);
 
-    cv::Mat global_map;
+    // warped_image visualize
+    /*cv::Mat vis_middle, vis_right, vis_left;
+    cv::resize(middle_warped, vis_middle, cv::Size( middle_warped.cols/2,   middle_warped.rows/2 ), 0, 0, CV_INTER_NN );
+    cv::resize(right_warped, vis_right, cv::Size( right_warped.cols/2,   right_warped.rows/2 ), 0, 0, CV_INTER_NN );
+    cv::resize(left_warped, vis_left, cv::Size( left_warped.cols/2,   left_warped.rows/2 ), 0, 0, CV_INTER_NN );
+    imshow("middle_warped", vis_middle);
+    imshow("right_warped", vis_right);
+    imshow("left_warped", vis_left);*/
+    
+
+    cv::Mat global_map, global_map_vis;
 
     bitwise_and(middle_warped, right_warped, global_map);
     bitwise_and(left_warped, global_map, global_map);
 
-    imshow("global_map", global_map);
+    cv::resize(global_map, global_map_vis, cv::Size(global_map.cols/2, global_map.rows/2 ), 0, 0, CV_INTER_NN );
+    imshow("global_map", global_map_vis);
 
     cv_bridge::CvImage img_bridge;
     sensor_msgs::Image img_msg;

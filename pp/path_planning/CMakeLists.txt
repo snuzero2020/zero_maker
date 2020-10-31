@@ -26,7 +26,7 @@ include/${PROJECT_NAME}
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME}_node src/planning.cpp src/planning_new.cpp src/rrt_ys.cpp src/rrt_ys.h)
+add_executable(${PROJECT_NAME}_node src/planning.cpp )
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
  target_link_libraries(${PROJECT_NAME}_node

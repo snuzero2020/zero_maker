@@ -8,7 +8,7 @@ width = list(img.shape)[1]
 points = []
 Points = []
 obstacle = []
-print(height, width)
+
 
 def generateCircle(radius, center):
     circle = []
@@ -23,7 +23,6 @@ def generateCircle(radius, center):
 for i in range(height)[0:height:int(height/4)]:
     for j in range(width)[0:width:int(width/4)]:
         points.append([i, j])
-        print(points)
         for pts in generateCircle(15, [i, j]):
             if np.any(img[pts[0]][pts[1]]) and pts[0]*pts[1] >=0 and pts[0]+pts[1] >=0 and [i,j] not in obstacle:
                 obstacle.append([i,j])
@@ -34,15 +33,8 @@ for k in range(len(points)):
         Points.append(1)
     else:
         Points.append(0)
-
-
-print("Points")
-print(points)
+print("이미지 크기")
+print(height, width)
 print('\n')
-
-print("Obstacles")
-
-print(obstacle)
-print(len(obstacle))
-print('\n')
+print("0은 장애물 없음, 1은 장애물이 15픽셀 반경 내에 존재")
 print(Points)

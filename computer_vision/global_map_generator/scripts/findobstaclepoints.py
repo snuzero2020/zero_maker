@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 
-img = cv2.imread('/home/mu/PycharmProjects/birdeye/venv/global_map.jpg')
+img = cv2.imread('/home/mu/PycharmProjects/birdeye/venv/global_map_final.jpg')
 height = list(img.shape)[0]
 width = list(img.shape)[1]
 points = []

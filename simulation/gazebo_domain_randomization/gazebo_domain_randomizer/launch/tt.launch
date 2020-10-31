@@ -1,8 +1,0 @@
-<launch>
-  <arg name="event_mode" default="timer" />
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find gazebo_domain_randomizer)/worlds/turtlebot3_world.world" />
-    <arg name="gui" value="false" />
-  </include>
-   <node name="gazebo_gui" pkg="gazebo_domain_randomizer" type="gzclient" respawn="false" output="screen" />
-</launch>

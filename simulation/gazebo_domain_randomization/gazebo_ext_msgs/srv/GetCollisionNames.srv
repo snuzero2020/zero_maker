@@ -1,5 +1,0 @@
-string[] link_names
----
-string[] link_collision_names
-bool success
-string status_message

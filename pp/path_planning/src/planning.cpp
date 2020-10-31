@@ -13,10 +13,10 @@
 #define global_point_distance 0.23   
 
 #define pixel_distance 0.01
-#define random_distance 0.03
-#define choose_parent_and_rewire_distance 0.1
+#define random_distance 0.04
+#define choose_parent_and_rewire_distance 0.06
 #define obstacle_check_distance 0.02
-#define goal_point_reach_distance 0.02
+#define goal_point_reach_distance 0.04
 
 using namespace std;
 
@@ -232,6 +232,8 @@ class Planning{
 
             nav_msgs::Path msg;
 
+            reverse(total_path.begin(), total_path.end());
+
             for (int i = 0; i < total_path.size(); ++i){
                 //cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
                 geometry_msgs::PoseStamped p;
@@ -342,8 +344,30 @@ class Planning{
             //cout << start_x << " " << start_y << " " << goal_x << " " << goal_y << endl;
         }
 
-        int obstacle_check (Point a, Point b){
-            return 1;
+        int obstacle_check (Point p, Point q){
+            int check = 1;
+
+            int px = p.pixel_x;
+            int py = p.pixel_y;
+            int qx = q.pixel_x;
+            int qy = q.pixel_y;
+            
+            int a = py - qy;
+            int b = -(px - qx);
+            int c = -px*(py-qy) + py*(px-qx);
+
+            for (int i = std::min(px, qx); i < std::max(px, qx) + 1; ++i ){
+                for (int j = std::min(py, qy); j < std::max(py, qy) + 1; ++j ){
+                    double d = double(std::abs(a*i + b*j + c)) / double(pow(a*a + b*b, 0.5));
+                    if ( d < obstacle_check_distance / pixel_distance ){
+                        if (map[i][j] == 1 ){
+                            check = 0;
+                        }
+                    }
+                }
+            }
+
+            return check;        
         }
 
         int nearst_point_index(vector<Point> tree, Point point){

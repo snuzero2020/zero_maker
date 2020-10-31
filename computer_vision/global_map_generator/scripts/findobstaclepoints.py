@@ -8,7 +8,6 @@ width = list(img.shape)[1]
 points = []
 Points = []
 obstacle = []
-obstacle1=[]
 print(height, width)
 
 def generateCircle(radius, center):

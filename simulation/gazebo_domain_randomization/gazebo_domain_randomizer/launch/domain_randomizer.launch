@@ -5,7 +5,8 @@
   <arg name="gazebo_gui_ns" default="/gazebo_gui" />
   <group ns="randomizers">
     <node pkg="gazebo_domain_randomizer" name="light_randomizer" type="light_randomizer" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
-    <node pkg="gazebo_domain_randomizer" name="shapes_randomizer_driving_area" type="shapes_randomizer_driving_area" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
+    <node pkg="gazebo_domain_randomizer" name="sky_randomizer" type="sky_randomizer" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
+	<node pkg="gazebo_domain_randomizer" name="shapes_randomizer_driving_area" type="shapes_randomizer_driving_area" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
     <node pkg="gazebo_domain_randomizer" name="pc_cam1" type="pc_cam1" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
 	<node pkg="gazebo_domain_randomizer" name="pc_cam2" type="pc_cam2" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
 	<node pkg="gazebo_domain_randomizer" name="pc_cam3" type="pc_cam3" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>

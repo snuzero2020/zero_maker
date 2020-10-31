@@ -4,9 +4,13 @@
 #include <sensor_msgs/image_encodings.h>
 #include <iostream>
 #include "ros/package.h"
+#include "std_msgs/Int32MultiArray.h"
 
 using namespace cv;
 using namespace std;
+
+int IMAGE_HEIGHT = 1200;
+int IMAGE_WIDTH = 1040;
 
 int node_points_x[4] = {180, 407, 634, 861};
 int node_points_y[4] = {254, 487, 720, 953};
@@ -21,6 +25,7 @@ class GlobalMapPublisher
         int node_points[16][2];
         ros::NodeHandle nh;
         ros::Publisher global_map_pub;
+        ros::Publisher node_obstacle_info_pub;
         cv::Mat M_middle = cv::Mat::zeros(3, 3, CV_64FC1);
         cv::Mat M_right = cv::Mat::zeros(3, 3, CV_64FC1);
         cv::Mat M_left = cv::Mat::zeros(3, 3, CV_64FC1);
@@ -28,6 +33,7 @@ class GlobalMapPublisher
     public:
         GlobalMapPublisher(){
             global_map_pub = nh.advertise<sensor_msgs::Image>("/global_map", 1);
+            node_obstacle_info_pub = nh.advertise<std_msgs::Int32MultiArray>("/node_obstacle_info", 1);
             ROS_INFO("Glabal Map Publisher Loaded");
 
             for(int i=0; i<4; i++){
@@ -40,13 +46,36 @@ class GlobalMapPublisher
         
         void global_map_callback(cv::Mat img_middle, cv::Mat img_right, cv::Mat img_left);
         void load_birdeye_matrix();
+        void calc_obstalce_info(cv::Mat global_map);
         cv::Mat birdeye(cv::Mat M, cv::Mat img);
 
 };
 
+void GlobalMapPublisher::calc_obstalce_info(cv::Mat global_map){
+    int node_info[16] = {0};
+    std_msgs::Int32MultiArray array;
+
+    for(int i=0; i<16; i++){
+        for(int s_x = node_points[i][0] - 10; s_x < node_points[i][0] + 10; s_x++){
+            for(int s_y = node_points[i][1] - 10; s_y < node_points[i][1] + 10; s_y++){
+                if(global_map.at<uchar>(s_y, s_x) == 255){
+                    node_info[i] = 1;
+                }
+            }
+        }
+    }
+    
+    array.data.clear();
+    for(int i=0; i<16; i++){
+        array.data.push_back(node_info[i]);
+        //std::cout << node_info[i] << std::endl;
+    }
+    node_obstacle_info_pub.publish(array);
+}
+
 cv::Mat GlobalMapPublisher::birdeye(cv::Mat M, cv::Mat img){
-    cv::Mat out_img = cv::Mat::zeros(1200, 1040, CV_8UC1);
-    cv::warpPerspective(img, out_img, M, Size(1040, 1200));
+    cv::Mat out_img = cv::Mat::zeros(IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1);
+    cv::warpPerspective(img, out_img, M, Size(IMAGE_WIDTH, IMAGE_HEIGHT));
     return out_img;
 }
 
@@ -75,6 +104,8 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
     bitwise_and(middle_warped, right_warped, global_map);
     bitwise_and(left_warped, global_map, global_map);
 
+    calc_obstalce_info(global_map);
+
     cv::resize(global_map, global_map_vis, cv::Size(global_map.cols/2, global_map.rows/2 ), 0, 0, CV_INTER_NN );
     
     /*
@@ -91,8 +122,7 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
     img_bridge.toImageMsg(img_msg);
     global_map_pub.publish(img_msg);
 
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+    cv::waitKey(1);
 }
 
 int main(int argc, char** argv)
@@ -104,7 +134,8 @@ int main(int argc, char** argv)
 
     GlobalMapPublisher global_map_publisher;
     global_map_publisher.load_birdeye_matrix();
-    global_map_publisher.global_map_callback(img_middle, img_right, img_left);
+    while(1)
+        global_map_publisher.global_map_callback(img_middle, img_right, img_left);
 
     return 0;
 }

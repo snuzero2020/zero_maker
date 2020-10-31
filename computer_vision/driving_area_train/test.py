@@ -8,14 +8,12 @@ from scripts.utils import *
 from data_loader.dataset import *
 import time
 import matplotlib.pyplot as plt
+import roslib
+from cv_bridge import CvBridge, CvBridgeError
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=1, help="size of each image batch")
-    parser.add_argument("--weight_path", '-w', type=str, default="/home/sunho/catkin_ws/src/zero_maker/computer_vision/driving_area_train/checkpoints/ldln_ckpt_5.pth", help="Path to model weights")
-    parser.add_argument("--band_width", '-b', type=float, default=1.5, help="Value of delta_v")
-    parser.add_argument("--visualize", '-v', action="store_true", default=False, help="Visualize the result")
-    parser.add_argument("--test_path", type=str, default="/home/sunho/catkin_ws/src/zero_maker/computer_vision/driving_area_train/img/test.txt", help = "test.txt path")
+    parser.add_argument("--weight_path", '-w', type=str, default=roslib.packages.get_pkg_dir("driving_area_train") + "/checkpoints/ldln_ckpt_5.pth", help="Path to model weights")
     opt = parser.parse_args()
 
     USE_CUDA = torch.cuda.is_available()
@@ -34,7 +32,7 @@ if __name__ == "__main__":
     accnum = 0
 
     start_time = time.time()
-    for i, sample in enumerate(dataloader):
+    while not rospy.is_shutdown():
         img_to = sample['img'].to(DEVICE)
         output = model(img_to)
 

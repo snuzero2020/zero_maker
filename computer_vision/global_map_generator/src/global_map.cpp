@@ -3,17 +3,22 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <iostream>
+#include "ros/package.h"
 
 using namespace cv;
 using namespace std;
 
-std::string middle_matrix_file = "/home/sunho/catkin_ws/src/zero_maker/computer_vision/global_map_generator/perspective_matrix_middle.txt";
-std::string right_matrix_file = "/home/sunho/catkin_ws/src/zero_maker/computer_vision/global_map_generator/perspective_matrix_right.txt";
-std::string left_matrix_file = "/home/sunho/catkin_ws/src/zero_maker/computer_vision/global_map_generator/perspective_matrix_left.txt";
+int node_points_x[4] = {180, 407, 634, 861};
+int node_points_y[4] = {254, 487, 720, 953};
+
+std::string middle_matrix_file = ros::package::getPath("global_map_generator") + "/perspective_matrix_middle.txt";
+std::string right_matrix_file = ros::package::getPath("global_map_generator") + "/perspective_matrix_right.txt";
+std::string left_matrix_file = ros::package::getPath("global_map_generator") + "/perspective_matrix_left.txt";
 
 class GlobalMapPublisher
 {
     private:
+        int node_points[16][2];
         ros::NodeHandle nh;
         ros::Publisher global_map_pub;
         cv::Mat M_middle = cv::Mat::zeros(3, 3, CV_64FC1);
@@ -24,6 +29,13 @@ class GlobalMapPublisher
         GlobalMapPublisher(){
             global_map_pub = nh.advertise<sensor_msgs::Image>("/global_map", 1);
             ROS_INFO("Glabal Map Publisher Loaded");
+
+            for(int i=0; i<4; i++){
+                for(int j=0; j<4; j++){
+                    node_points[4*i + j][0] = node_points_x[i];
+                    node_points[4*i + j][1] = node_points_y[j];
+                }
+            }
         }
         
         void global_map_callback(cv::Mat img_middle, cv::Mat img_right, cv::Mat img_left);
@@ -58,22 +70,18 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
     cv::Mat right_warped = birdeye(M_right, img_right);
     cv::Mat left_warped = birdeye(M_left, img_left);
 
-    // warped_image visualize
-    /*cv::Mat vis_middle, vis_right, vis_left;
-    cv::resize(middle_warped, vis_middle, cv::Size( middle_warped.cols/2,   middle_warped.rows/2 ), 0, 0, CV_INTER_NN );
-    cv::resize(right_warped, vis_right, cv::Size( right_warped.cols/2,   right_warped.rows/2 ), 0, 0, CV_INTER_NN );
-    cv::resize(left_warped, vis_left, cv::Size( left_warped.cols/2,   left_warped.rows/2 ), 0, 0, CV_INTER_NN );
-    imshow("middle_warped", vis_middle);
-    imshow("right_warped", vis_right);
-    imshow("left_warped", vis_left);*/
-    
-
     cv::Mat global_map, global_map_vis;
 
     bitwise_and(middle_warped, right_warped, global_map);
     bitwise_and(left_warped, global_map, global_map);
 
     cv::resize(global_map, global_map_vis, cv::Size(global_map.cols/2, global_map.rows/2 ), 0, 0, CV_INTER_NN );
+    
+    /*
+    for(int i=0; i<16; i++){
+        cv::circle(global_map_vis, cv::Point(int(node_points[i][0]/2), int(node_points[i][1]/2)), 2, cv::Scalar(255,255,255));
+    }*/
+
     imshow("global_map", global_map_vis);
 
     cv_bridge::CvImage img_bridge;
@@ -90,10 +98,9 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "global_map_pub");
-
-    cv::Mat img_middle = cv::imread("/home/sunho/catkin_ws/src/zero_maker/computer_vision/global_map_generator/img_sample/cam1/point_label_img_00005.jpg",CV_RGB2GRAY);
-    cv::Mat img_right = cv::imread("/home/sunho/catkin_ws/src/zero_maker/computer_vision/global_map_generator/img_sample/cam2/point_label_img_00006.jpg",CV_RGB2GRAY);
-    cv::Mat img_left = cv::imread("/home/sunho/catkin_ws/src/zero_maker/computer_vision/global_map_generator/img_sample/cam3/point_label_img_00005.jpg",CV_RGB2GRAY);
+    cv::Mat img_middle = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam1/point_label_img_00005.jpg",CV_RGB2GRAY);
+    cv::Mat img_right = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam2/point_label_img_00006.jpg",CV_RGB2GRAY);
+    cv::Mat img_left = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam3/point_label_img_00005.jpg",CV_RGB2GRAY);
 
     GlobalMapPublisher global_map_publisher;
     global_map_publisher.load_birdeye_matrix();

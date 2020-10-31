@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(global_map_generator)
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   roscpp
   rospy
+  roslib
   std_msgs
   sensor_msgs
   cv_bridge

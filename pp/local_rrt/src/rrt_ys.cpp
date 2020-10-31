@@ -1,9 +1,16 @@
-
+#include <ros/ros.h>
 #include "rrt_ys.h"
+#include "nav_msgs/OccupancyGrid.h"
+#include "nav_msgs/Path.h"
 
-#include <fstream>
+using namespace std;
 
- 
+#define pixel_distance 0.01
+#define random_distance 0.1
+#define choose_parent_distance 0.1
+#define rewire_distance 0.1
+#define obstacle_check_distance 0.01
+#define goal_point_arrive_distance 0.2
 
 #define p_empty 0
 
@@ -588,3 +595,96 @@ int main()
 
 }
 */
+
+
+// ROS Topic Subscribers
+ros::Subscriber path_sub;
+
+double sx,sy,gx, gy;
+
+class tracker_path{ //이 class는 tracker에 전달할 path를 publish 하는 코드
+    private:
+        ros::NodeHandle nh;
+        ros::Publisher path_pub;
+
+        nav_msgs::Path route;
+    public:
+        void init()
+        {
+            path_pub = nh.advertise<nav_msgs::Path>("/tracker_path", 20);
+        }
+        void add(int x, int y)
+        {
+            geometry_msgs::PoseStamped p;
+            p.pose.position.x = x;
+            p.pose.position.y = y;
+            route.poses.push_back(p);
+        }
+        void send()
+        {
+            reverse(route.poses.begin(), route.poses.end());
+            path_pub.publish(route);
+            route.poses.erase(route.poses.begin(), route.poses.end());
+        }
+
+};
+
+void pathCallback(const nav_msgs::OccupancyGrid& msg)
+{
+	/*for(int i=0; i<msg.data.size(); i++)
+	{
+		if(i%4 == 0)
+		{
+			sx = msg.data[]
+		}
+	}*/
+	sx = msg.data[0];
+	sy = msg.data[1];
+	gx = msg.data[2];
+	gy = msg.data[3];
+}
+
+int main(int argc, char *argv[]){
+	ros::init(argc, argv, "local_rrt");
+	tracker_path tpath;
+	tpath.init();
+
+	ros::NodeHandle nh;
+	ros::Rate loop_rate(10);
+	path_sub = nh.subscribe("/path", 10, &pathCallback);
+
+	rrt_ys::rrt_star rrt;
+	rrt.init(pixel_distance, random_distance, choose_parent_distance, rewire_distance, obstacle_check_distance, goal_point_arrive_distance);
+
+	while(ros::ok())
+	{
+		vector<vector<int> > map;
+
+		for(int i=0; i<100; i++)
+
+        {
+            vector<int> temp;
+            map.push_back(temp);
+            for(int j=0; j<100; j++)
+            {
+                map[i].push_back(0);
+            }
+        }
+
+		map[sx][sy] = p_route;
+		map[gx][gy] = p_goal;
+
+		vector<ys::point> route = rrt.rrtstar(map, sx, sy, gx, gy);
+		 
+        for(int i=0;i<route.size();i++)
+        {
+            tpath.add(route[i].x, route[i].y);
+        }
+        tpath.send();
+        ros::spinOnce();
+        loop_rate.sleep();
+        
+	}
+	return 0;
+}
+

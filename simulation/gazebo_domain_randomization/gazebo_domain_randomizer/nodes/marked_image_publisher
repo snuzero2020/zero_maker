@@ -1,0 +1,180 @@
+#!/usr/bin/env python
+from string import Template
+import numpy as np
+import rospy
+from geometry_msgs.msg import Pose, Point, Quaternion
+from std_msgs.msg import Int32
+from gazebo_msgs.srv import SpawnModel, SpawnModelRequest
+from gazebo_msgs.srv import DeleteModel, DeleteModelRequest
+from tf.transformations import quaternion_from_euler
+import math
+import random
+import time
+from sensor_msgs.msg import Image, CameraInfo
+from gazebo_msgs.msg import ModelStates
+from image_geometry import PinholeCameraModel
+import cv2
+from cv_bridge import CvBridge
+from scipy.spatial.transform import Rotation as R
+import json
+import os
+
+def add_vector(points, origin):
+    for point in points:
+        point[0] = point[0] + origin.x
+        point[1] = point[1] + origin.y
+        point[2] = point[2] + origin.z
+    return points
+
+
+def project3dto2d(point, camera_position, camera):
+    r = R.from_quat([camera_position.orientation.x,
+                     camera_position.orientation.y,
+                     camera_position.orientation.z,
+                     camera_position.orientation.w])
+    r = r.inv()
+    p = [point[0]-camera_position.position.x,
+         point[1]-camera_position.position.y,
+         point[2]-camera_position.position.z]
+    p = r.apply(p)
+    x = -p[1]
+    y = -p[2]
+    z = p[0]
+    print(x,y,z)
+    #x = -(point[1] - camera_pose.position.y)
+    #y = -(point[2] - camera_pose.position.z)
+    #z = point[0] - camera_pose.position.x
+    rt = camera.project3dToPixel((x,y,z))
+
+    return [x,y,z], rt
+
+
+class MarkedImage:  
+    def __init__(self):
+        self._pub = rospy.Publisher('/marked_image', Image, queue_size=1)
+        self._sub_camera_info = rospy.Subscriber('/camera_sample/camera_info',
+                                                 CameraInfo, self.callback_camera)
+        self._sub_image_raw = rospy.Subscriber('/camera_sample/image_raw',
+                                                Image, self.callback_image)
+        self._sub_model_states = rospy.Subscriber('/gazebo/model_states',
+                                                  ModelStates, self.callback_model)
+        self._sub_collection_sign = rospy.Subscriber('/collection_sign', Int32, self.callback_sign)
+        self._camera = PinholeCameraModel()
+        self._image = Image()
+        self._objs = []
+        self._bridge = CvBridge()
+        self._camera_position = Pose()
+        self._object_cuboid = [[],[[0.0,0.0,0.086],
+                                   [0.069, -0.089, 0.182],
+                                   [-0.069,-0.089,0.182],
+                                   [-0.069,0.089,0.182],
+                                   [0.069,0.089,0.182],
+                                   [0.069,-0.089,-0.010],
+                                   [-0.069,-0.089,-0.010],
+                                   [-0.069,0.089,-0.010],
+                                   [0.069,0.089,-0.010]]]
+        self._index = 0
+        self._offset = 0
+        #self._camera_rotation_matrix = camera_rotation_matrix
+
+    def callback_camera(self, msg):
+        tmp = list(msg.P)
+        tmp[3] = 0
+        msg.P = tuple(tmp)
+        self._camera.fromCameraInfo(msg)
+
+    def callback_image(self, msg):
+        self._image = msg
+
+    def callback_sign(self, msg):
+        if msg.data == self._index:
+            return
+        self._index = msg.data
+        img = self._bridge.imgmsg_to_cv2(self._image, "bgr8")
+        save_file = {}
+        obj_list = []
+        for obj in self._objs:
+            if not obj['name'][0:3] == 'tar':
+                continue
+            obj_saver = {}
+            #obj_saver['class'] = obj['name'][5:]
+            obj_saver['class'] = 'turtlebot_burger'
+            #obj_saver['location'] = [obj['pose'].position.x,
+            #                         obj['pose'].position.y, 
+            #                         obj['pose'].position.z]
+            #obj_saver['quaternion_xyzw'] = [obj['pose'].orientation.x,
+            #                                obj['pose'].orientation.y,
+            #                                obj['pose'].orientation.z,
+            #                                obj['pose'].orientation.w]
+            obj_rotation = R.from_quat([obj['pose'].orientation.x,
+                                        obj['pose'].orientation.y,
+                                        obj['pose'].orientation.z,
+                                        obj['pose'].orientation.w])
+            #object_type = obj['name'][-1]
+            #if object_type == 'turtlebot3_burger':
+            #    v = self._object_cuboid[1]
+            #v = self._object_cuboid[int(obj['name'][-1]-'A' +1)]
+            object_type = 'turtlebot3_burger'
+            v = self._object_cuboid[1]
+            v = obj_rotation.apply(v)
+            v = add_vector(v,obj['pose'].position)
+            v= v.tolist()
+            #obj_saver['cuboid_centroid'] = v[0]
+            #obj_saver['cuboid'] = list(v[1:9])
+            projected = []
+            transformed_points = []
+            for point in v:
+                p, c = project3dto2d(point,self._camera_position,self._camera)
+                transformed_points.append(p)
+                projected.append([c[0],c[1]])
+                cv2.circle(img,(int(c[0]),int(c[1])),5, (255,0,0), -1)
+            obj_saver['cuboid_centroid'] = transformed_points[0]
+            obj_saver['location'] = transformed_points[0]
+            obj_saver['cuboid'] = transformed_points[1:9]
+            obj_saver['projected_cuboid_centroid'] = projected[0]
+            obj_saver['projected_cuboid'] = projected[1:9]
+            r1 = R.from_quat([obj['pose'].orientation.x,
+                                            obj['pose'].orientation.y,
+                                            obj['pose'].orientation.z,
+                                            obj['pose'].orientation.w])
+            r2 = R.from_quat([self._camera_position.orientation.x,
+                     self._camera_position.orientation.y,
+                     self._camera_position.orientation.z,
+                     self._camera_position.orientation.w])
+            r2 = r2.inv()
+            r = r2 * r1
+            obj_saver['quaternion_xyzw'] = list(r.as_quat())
+            obj_list.append(obj_saver)
+        save_path = './result/dope/single/'
+        json_filename='single_turtlebot_burger_{0:>06d}.json'.format(self._index+self._offset)
+        image_raw_filename = 'single_turtlebot_burger_{0:>06d}.png'.format(self._index+self._offset)
+        image_marked_filename = 'single_turtlebot_burger_marked_image_{0:>06d}.png'.format(self._index+self._offset)
+        if obj_list:
+            save_file['objects'] = obj_list
+            with open(save_path+json_filename, 'w') as outfile:
+                json.dump(save_file, outfile)
+                rospy.loginfo('Complete to save file')
+            cv2.imwrite(save_path+image_raw_filename, self._bridge.imgmsg_to_cv2(self._image, "bgr8"))
+            cv2.imwrite(save_path+image_marked_filename, img)
+        rospy.loginfo("save {0:06d} data for single turtlebot_burger".format(self._index+self._offset))
+        self._pub.publish(self._bridge.cv2_to_imgmsg(img, "bgr8"))
+        
+    def callback_model(self, msg):
+        objs = []
+        for i, obj_name in enumerate(msg.name):
+            if obj_name == 'ground_plane':
+                continue
+            elif obj_name == 'example':
+                self._camera_position = msg.pose[i]
+                continue
+            cur = {}
+            cur['name'] = obj_name
+            cur['pose'] = msg.pose[i]
+            objs.append(cur)
+        self._objs = objs
+
+
+if __name__=="__main__":
+    rospy.init_node("marked_image")
+    marked_image = MarkedImage()
+    rospy.spin()

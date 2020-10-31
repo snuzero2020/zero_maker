@@ -1,0 +1,15 @@
+<sdf version="1.6">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://house_1</uri>
+      <pose>-2.0 0 0 0 0 0</pose>
+    </include>
+    <plugin name="physics_plugin" filename="libgazebo_physics_plugin.so"/>
+  </world>
+</sdf>

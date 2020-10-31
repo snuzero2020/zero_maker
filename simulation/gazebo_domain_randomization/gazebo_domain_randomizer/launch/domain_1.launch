@@ -1,0 +1,12 @@
+<launch>
+  <arg name="model_name" />
+  <arg name="event_mode" default="timer" />
+  <arg name="gazebo_ns" default="/gazebo" />
+  <arg name="gazebo_gui_ns" default="/gazebo_gui" />
+  <group ns="randomizers">
+    <node pkg="gazebo_domain_randomizer" name="light_randomizer" type="light_randomizer" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
+    <node pkg="gazebo_domain_randomizer" name="shapes_randomizer_driving_area" type="shapes_randomizer_driving_area" args="-e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen" />
+    <node pkg="gazebo_domain_randomizer" name="marked_image_cv2" type="marked_image_cv2" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
+    <node pkg="gazebo_domain_randomizer" name="point_cloud2" type="point_cloud2" args="-m $(arg model_name) -e $(arg event_mode) --gazebo_ns $(arg gazebo_ns)" output="screen"/>
+  </group>
+</launch>

@@ -16,7 +16,7 @@ import numpy as np
 #import ros_numpy
 import sensor_msgs.point_cloud2 as pc2
 from struct import pack, unpack
-from scipy.spatial.transform import Rotation as R
+#from scipy.spatial.transform import Rotation as R
 from tf.transformations import euler_from_quaternion
 import math
 #-------------------------------------------#
@@ -101,9 +101,8 @@ class image_converter:
 	  pl = np.array(point_label)
 	  color_array = np.array(image, dtype=np.uint8)
 	  rospy.loginfo(image.shape)
-	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/cam2/color/' +'camera_rgb_' + str(i).zfill(5) + '.jpg', color_array)
-	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/cam2/point_label_img/' +'point_label_img_' + str(i).zfill(5) + '.jpg', pl*255)
-	  rospy.loginfo("pc_cam2: "+str(i)+"th image saved")
+	  cv2.imwrite('/home/sunho/catkin_ws/src/zero_maker/simulation/driving_area/img/cam2/color/' +'camera_rgb_' + str(i).zfill(5) + '.jpg', color_array)
+	  cv2.imwrite('/home/sunho/catkin_ws/src/zero_maker/simulation/driving_area/img/cam2/point_label_img/' +'point_label_img_' + str(i).zfill(5) + '.jpg', pl*255)
 	  i += 1
 	except CvBridgeError as e:
 	  print(e)

@@ -21,7 +21,7 @@ from tf.transformations import euler_from_quaternion
 import math
 #-------------------------------------------#
 # if there is an error relaunch after setting i
-i = 0
+i = 10815
 #-------------------------------------------#
 horizontal_pix = 640
 vertical_pix = 480
@@ -103,8 +103,8 @@ class image_converter:
 	  rospy.loginfo(image.shape)
 	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/cam3/color/' +'camera_rgb_' + str(i).zfill(5) + '.jpg', color_array)
 	  cv2.imwrite('/home/parallels/catkin_ws/src/zero_maker/simulation/driving_area/img/cam3/point_label_img/' +'point_label_img_' + str(i).zfill(5) + '.jpg', pl*255)
+	  rospy.loginfo("pc_cam3: "+str(i)+"th image saved")
 	  i += 1
-	  rospy.loginfo("image saved")
 	except CvBridgeError as e:
 	  print(e)
 

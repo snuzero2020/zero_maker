@@ -163,8 +163,6 @@ class ShapesRandomizer:
                                                                    self._position_range['z']['max']])),
                                                                    orientation=Quaternion(q[0],q[1],q[2],q[3]))
         rospy.logdebug("Spawn model sdf: " + req.model_xml)
-        if req.model_name not in self._spawned_objs:
-			try:
 				res = self._spawn_model(req)
 				if not res.success:
 					rospy.logwarn(res.status_message)

@@ -16,9 +16,9 @@
 
 #define pixel_distance 0.005
 #define random_distance 0.06
-#define choose_parent_and_rewire_distance 0.1
-#define obstacle_check_distance 0.06
-#define goal_point_reach_distance 0.1
+#define choose_parent_and_rewire_distance 0.8
+#define obstacle_check_distance 0.1
+#define goal_point_reach_distance 0.08
 
 using namespace std;
 
@@ -32,7 +32,7 @@ struct Point {
 
     int cost = -1;
     double ccost = 0;
-    int obstacle = 0;
+    int obstacle = 0; 
 
     Point* next_point[4];
     Point* parrent_point = NULL;
@@ -209,7 +209,7 @@ class Planning{
         }
 
         void read_map(){
-            cv::Mat img = cv::imread("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map_color_mask.png", CV_LOAD_IMAGE_GRAYSCALE);
             if (!img.empty()){
                 //cv::imshow("img", img);
                 //cv2::waitKey(0);
@@ -309,7 +309,7 @@ class Planning{
         void calculate_global_path(){
 
             int current_cost = 0;
-
+            global_points[10].obstacle = 1;
             while (global_points[goal_point_index].cost == -1){
                 //global_points[goal_point_index].cost = 0;
                 for (int i = 0; i < 16; ++i){
@@ -361,8 +361,10 @@ class Planning{
         void StartGoalObstaclePointCallback (const nav_msgs::OccupancyGrid & msg){
 
             for (int i = 0; i < 16; ++i){
-                global_points[i].obstacle = msg.data[i]; 
+                //global_points[i].obstacle = msg.data[i]; 
+                global_points[i].obstacle = 0; 
             }
+            global_points[10].obstacle = 1; 
             
         }
 
@@ -384,7 +386,7 @@ class Planning{
                 check = 1;
             }
 
-            cv::Mat img = cv::imread("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map_color_mask.png", CV_LOAD_IMAGE_GRAYSCALE);
 
             for (int i = 0; i < total_path.size(); ++i){
                 cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
@@ -409,7 +411,7 @@ class Planning{
                 //msg.poses.push_back(p);
             }
 
-            cv::imwrite("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/path.png", img);
+            cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/path.png", img);
 
             //path_pub.publish(msg);
 /*

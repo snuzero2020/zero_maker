@@ -6,6 +6,7 @@
 #include "ros/package.h"
 #include "std_msgs/Int32MultiArray.h"
 #include "global_map_generator/seg_msg.h"
+#include <vector>
 
 using namespace cv;
 using namespace std;
@@ -43,8 +44,8 @@ class GlobalMapPublisher
 
             for(int i=0; i<4; i++){
                 for(int j=0; j<4; j++){
-                    node_points[4*i + j][0] = node_points_x[i];
-                    node_points[4*i + j][1] = node_points_y[j];
+                    node_points[4*i + j][0] = node_points_x[j];
+                    node_points[4*i + j][1] = node_points_y[i];
                 }
             }
         }
@@ -52,6 +53,7 @@ class GlobalMapPublisher
         void global_map_callback(const global_map_generator::seg_msg::ConstPtr &msg);
         void load_birdeye_matrix();
         void calc_obstalce_info(cv::Mat global_map);
+        cv::Mat post_global_map(cv::Mat global_map);
         cv::Mat birdeye(cv::Mat M, cv::Mat img);
 
 };
@@ -104,6 +106,32 @@ void GlobalMapPublisher::load_birdeye_matrix(){
     }
 }
 
+cv::Mat GlobalMapPublisher::post_global_map(cv::Mat global_map){
+    vector<Point> pts1, pts2, pts3, pts4;
+    pts1.push_back(Point(0, 900));
+    pts1.push_back(Point(520, 1200));
+    pts1.push_back(Point(0, 1200));
+
+    pts2.push_back(Point(1040, 900));
+    pts2.push_back(Point(520, 1200));
+    pts2.push_back(Point(1040, 1200));
+
+    pts3.push_back(Point(0, 300));
+    pts3.push_back(Point(520, 0));
+    pts3.push_back(Point(0,0));
+
+    pts4.push_back(Point(1040, 300));
+    pts4.push_back(Point(520, 0));
+    pts4.push_back(Point(1040, 0));
+
+    cv::fillConvexPoly(global_map, pts1, 255);
+    cv::fillConvexPoly(global_map, pts2, 255);
+    cv::fillConvexPoly(global_map, pts3, 255);
+    cv::fillConvexPoly(global_map, pts4, 255);
+
+    return global_map;
+}
+
 void GlobalMapPublisher::global_map_callback(const global_map_generator::seg_msg::ConstPtr &msg){
     cv::Mat img_middle = cv::Mat::zeros(480, 640, CV_8UC1);
     cv::Mat img_right = cv::Mat::zeros(480, 640, CV_8UC1);
@@ -122,9 +150,9 @@ void GlobalMapPublisher::global_map_callback(const global_map_generator::seg_msg
             }
         }
     }
-    imshow("img_middle", img_middle);
+    /*imshow("img_middle", img_middle);
     imshow("img_right", img_right);
-    imshow("img_left", img_left);
+    imshow("img_left", img_left);*/
     
     cv::Mat middle_warped = birdeye(M_middle, img_middle);
     cv::Mat right_warped = birdeye(M_right, img_right);
@@ -135,6 +163,8 @@ void GlobalMapPublisher::global_map_callback(const global_map_generator::seg_msg
     bitwise_and(middle_warped, right_warped, global_map);
     bitwise_and(left_warped, global_map, global_map);
 
+    global_map = post_global_map(global_map);
+    
     calc_obstalce_info(global_map);
 
     cv::resize(global_map, global_map_vis, cv::Size(global_map.cols/2, global_map.rows/2 ), 0, 0, CV_INTER_NN );

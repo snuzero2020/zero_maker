@@ -56,6 +56,8 @@ class Planning{
         int goal_point_index;
         vector<int> global_path;
         vector<Point> total_path;
+        vector<Point> total_path_static;
+        int check = 0;
         //int x_l = int((global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance) ;
         //int y_l = int((global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance) ;
         //int map[ int( (global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance )][ int( (global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance )] ;
@@ -269,8 +271,30 @@ class Planning{
         }
 
         void CurrentPositionCallback(const geometry_msgs::Pose& msg){
-            current_state.pixel_x = int(msg.position.x / pixel_distance);
-            current_state.pixel_y = int(msg.position.y / pixel_distance);
+            current_state.pixel_x = 520 - int(msg.position.y / pixel_distance);
+            current_state.pixel_y = int(msg.position.x / pixel_distance) + 600;
+            
+            int min_index;
+            
+            for (int i = 0; i < total_path_static.size(); ++i){
+                int min_len = 1000000;
+                if (distance(total_path_static[i], current_state) < min_len){
+                    min_index = i;
+                    min_len = distance(total_path_static[i], current_state);
+                }
+            }
+
+            cout << current_state << endl;
+
+            int goal_plus_index = 2;
+
+            geometry_msgs::Pose mmsg;
+
+            if ( min_index + goal_plus_index < total_path_static.size()){
+                mmsg.position.x = (total_path_static[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
+                mmsg.position.y = (520 - total_path_static[min_index + goal_plus_index].pixel_x) * pixel_distance;
+                tracker_goal_point_pub.publish(mmsg);
+            }
         }
 /*
         void MapCallback(const nav_msgs::OccupancyGrid & msg){
@@ -352,6 +376,13 @@ class Planning{
 
             reverse(total_path.begin(), total_path.end());
 
+            if (check == 0){
+                for (int i = 0; i < total_path.size(); ++i){
+                    total_path_static.push_back(total_path[i]);
+                }
+                check = 1;
+            }
+
             cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
 
             for (int i = 0; i < total_path.size(); ++i){
@@ -380,25 +411,26 @@ class Planning{
             cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
 
             //path_pub.publish(msg);
-
+/*
             int min_index;
-            for (int i = 0; i < total_path.size(); ++i){
+            for (int i = 0; i < total_path_static.size(); ++i){
                 int min_len = 1000000;
-                if (distance(total_path[i], current_state) < min_len){
+                if (distance(total_path_static[i], current_state) < min_len){
                     min_index = i;
-                    min_len = distance(total_path[i], current_state);
+                    min_len = distance(total_path_static[i], current_state);
                 }
             }
 
-            int goal_plus_index = 4;
+            int goal_plus_index = 1;
 
             geometry_msgs::Pose mmsg;
 
-            if ( min_index + goal_plus_index < total_path.size()){
-                mmsg.position.x = (total_path[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
-                mmsg.position.y = (520 - total_path[min_index + goal_plus_index].pixel_x) * pixel_distance;
+            if ( min_index + goal_plus_index < total_path_static.size()){
+                mmsg.position.x = (total_path_static[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
+                mmsg.position.y = (520 - total_path_static[min_index + goal_plus_index].pixel_x) * pixel_distance;
                 tracker_goal_point_pub.publish(mmsg);
             }
+*/
             //cout << "-----------------------------------------" << endl;
 
         }

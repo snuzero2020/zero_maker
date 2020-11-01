@@ -153,11 +153,23 @@ void GlobalMapPublisher::global_map_callback(const global_map_generator::seg_msg
     /*imshow("img_middle", img_middle);
     imshow("img_right", img_right);
     imshow("img_left", img_left);*/
+
+    cv::imwrite(ros::package::getPath("global_map_generator") + "/img_middle.png", img_middle);
+    cv::imwrite(ros::package::getPath("global_map_generator") + "/img_right.png", img_right);
+    cv::imwrite(ros::package::getPath("global_map_generator") + "/img_left.png", img_left);
     
     cv::Mat middle_warped = birdeye(M_middle, img_middle);
     cv::Mat right_warped = birdeye(M_right, img_right);
     cv::Mat left_warped = birdeye(M_left, img_left);
 
+    cv::Mat middle_warped_resized, right_warped_resized, left_warped_resized;
+    cv::resize(middle_warped, middle_warped_resized, cv::Size(middle_warped.cols/2, middle_warped.rows/2 ), 0, 0, CV_INTER_NN );
+    cv::resize(right_warped, right_warped_resized, cv::Size(right_warped.cols/2, right_warped.rows/2 ), 0, 0, CV_INTER_NN );
+    cv::resize(left_warped, left_warped_resized, cv::Size(left_warped.cols/2, left_warped.rows/2 ), 0, 0, CV_INTER_NN );
+
+    imshow("middle", middle_warped_resized);
+    imshow("right", right_warped_resized);
+    imshow("left", left_warped_resized);
     cv::Mat global_map, global_map_vis;
 
     bitwise_and(middle_warped, right_warped, global_map);

@@ -61,7 +61,7 @@ class Controller{
     ros::Subscriber _sub_state;
     ros::Subscriber _sub_goal_point;
     ros::ServiceClient _client;
-    string target_name = "turtlebot";
+    string target_name;
     pdd cur_position;
     double cur_theta;
     double L;
@@ -70,21 +70,27 @@ class Controller{
     double vel;
     clock_t now;
     double threshold_time;
+    int cnt;
 
     public:
     Controller(){
         _pub = _nh.advertise<geometry_msgs::Pose>("/current_position", 10);
-        _sub_state = _nh.subscribe("/gazebo_model_state", 1, &Controller::callback_state, this);
+        _sub_state = _nh.subscribe("/gazebo/model_states", 1, &Controller::callback_state, this);
         _sub_goal_point = _nh.subscribe("/tracker_goal_point", 1, &Controller::callback_goal_point, this);
-        _client = _nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/SetModelState");
-        L = 0.178;
+        _client = _nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+        target_name = "turtlebot3_burger";
+	L = 0.178;
         R = 0.033;
-        vel = 1;
+        vel = 0.2;
         now = clock();
         threshold_time = 1;
+	cnt = 0;
     }
 
     void callback_state(const gazebo_msgs::ModelStates::ConstPtr& msg){
+	cnt ++;
+	if(cnt %100 >0) return;
+        cnt = 0;	
         geometry_msgs::Pose rt;
         int size = msg->name.size();
         int index = -1;
@@ -108,26 +114,30 @@ class Controller{
         double x = 2*(q.w*q.z+q.x*q.y);
         double y = 1-2*(q.y*q.y+q.z*q.z);
         cur_theta = atan2(x,y);
-
-        rt = msg->pose[i];
+	cout << "cur_theta: "<<cur_theta<<endl;
+	rt = msg->pose[i];
         _pub.publish(rt);
     }
 
     void callback_goal_point(const geometry_msgs::Pose::ConstPtr& msg){
         double dt = (double)(clock() - now)/CLOCKS_PER_SEC;
+	cout << "dt: " << dt << endl;
         now = clock();
         if(dt>threshold_time) return;
         pdd g = {msg->position.x, msg->position.y};
+	cout << "g : " << g.first << ", " << g.second <<endl;
         double d_theta = atan2(g.second-cur_position.second, g.first - cur_position.second); //desired theta
         double e_theta = d_theta - cur_theta;
         e_theta = min_abs(e_theta, e_theta+ 2* M_PI, e_theta-2*M_PI);
         double d_omega = P_gain * e_theta; //desired_omega
+        cout << "e_theta: "<<e_theta<<endl;
 
         geometry_msgs::Pose next;
         next.position.x = cur_position.first + vel*cos(cur_theta)*dt;
         next.position.y = cur_position.second + vel*sin(cur_theta)*dt;
         next.orientation = q_from_e(0,0,cur_theta+d_omega*dt);
 
+        cout << "update next state" << endl;
 
         gazebo_msgs::ModelState turtlebot;
         turtlebot.model_name = target_name;
@@ -135,6 +145,9 @@ class Controller{
 
         gazebo_msgs::SetModelState srv;
         srv.request.model_state = turtlebot;
+
+	cout << "request set model state service" << endl;
+	
 
         if(_client.call(srv)) ROS_INFO("Success to update turtlebot pose");
         else ROS_ERROR("ERROR to update turtlebot pose");

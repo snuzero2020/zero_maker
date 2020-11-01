@@ -15,10 +15,10 @@
 //#define global_point_distance 1.18   
 
 #define pixel_distance 0.005
-#define random_distance 0.04
-#define choose_parent_and_rewire_distance 0.2
-#define obstacle_check_distance 0.04
-#define goal_point_reach_distance 0.08
+#define random_distance 0.1
+#define choose_parent_and_rewire_distance 0.3
+#define obstacle_check_distance 0.1
+#define goal_point_reach_distance 0.3
 
 using namespace std;
 

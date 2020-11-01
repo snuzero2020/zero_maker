@@ -114,7 +114,7 @@ class Controller{
         double x = 2*(q.w*q.z+q.x*q.y);
         double y = 1-2*(q.y*q.y+q.z*q.z);
         cur_theta = atan2(x,y);
-
+        cout << "theta: "<<cur_theta<<endl;
         rt = msg->pose[i];
         _pub.publish(rt);
     }

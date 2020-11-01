@@ -15,10 +15,10 @@
 //#define global_point_distance 1.18   
 
 #define pixel_distance 0.005
-#define random_distance 0.02
+#define random_distance 0.06
 #define choose_parent_and_rewire_distance 0.1
-#define obstacle_check_distance 0.005
-#define goal_point_reach_distance 0.04
+#define obstacle_check_distance 0.06
+#define goal_point_reach_distance 0.1
 
 using namespace std;
 
@@ -70,12 +70,12 @@ class Planning{
 
         Planning(){
             
-            global_path_pub = nh.advertise<nav_msgs::OccupancyGrid>("path",2);
-            start_goal_obstacle_point_sub = nh.subscribe("obstacle_point", 2, &Planning::StartGoalObstaclePointCallback, this);
+            global_path_pub = nh.advertise<nav_msgs::OccupancyGrid>("/path",2);
+            start_goal_obstacle_point_sub = nh.subscribe("/obstacle_point", 2, &Planning::StartGoalObstaclePointCallback, this);
             //map_sub = nh.subscribe("map", 2, &Planning::MapCallback, this);
-            path_pub = nh.advertise<nav_msgs::Path>("tracker_path", 2);
-            current_position_sub = nh.subscribe("current_position", 2, &Planning::CurrentPositionCallback, this);
-            tracker_goal_point_pub = nh.advertise<geometry_msgs::Pose>("tracker_goal_point", 2);
+            path_pub = nh.advertise<nav_msgs::Path>("/tracker_path", 2);
+            current_position_sub = nh.subscribe("/current_position", 2, &Planning::CurrentPositionCallback, this);
+            tracker_goal_point_pub = nh.advertise<geometry_msgs::Pose>("/tracker_goal_point", 2);
 /*
             for (int i = 0; i < 16; ++i){
                 global_points[i].x = (i % 4) * global_point_distance + boundary_distance_x;
@@ -209,7 +209,7 @@ class Planning{
         }
 
         void read_map(){
-            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat img = cv::imread("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
             if (!img.empty()){
                 //cv::imshow("img", img);
                 //cv2::waitKey(0);
@@ -261,7 +261,7 @@ class Planning{
                 //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
                 //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
 
-                //cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+                //cv::imwrite("/home/jeongowoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
                 //cv::waitKey(0);
             }
 
@@ -275,10 +275,9 @@ class Planning{
             current_state.pixel_y = int(msg.position.x / pixel_distance) + 600;
             
             int min_index;
-            int min_len;
+            int min_len = 100000;
             
             for (int i = 0; i < total_path_static.size(); ++i){
-                int min_len = 1000000;
                 if (distance(total_path_static[i], current_state) < min_len){
                     min_index = i;
                     min_len = distance(total_path_static[i], current_state);
@@ -290,8 +289,9 @@ class Planning{
             int goal_plus_index = 2;
 
             geometry_msgs::Pose mmsg;
-
+            cout << min_index << " " << goal_plus_index <<" " << total_path_static.size() <<endl;
             if ( min_index + goal_plus_index < total_path_static.size()){
+		    cout<<1<<endl;
                 mmsg.position.x = (total_path_static[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
                 mmsg.position.y = (520 - total_path_static[min_index + goal_plus_index].pixel_x) * pixel_distance;
                 tracker_goal_point_pub.publish(mmsg);
@@ -384,7 +384,7 @@ class Planning{
                 check = 1;
             }
 
-            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat img = cv::imread("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
 
             for (int i = 0; i < total_path.size(); ++i){
                 cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
@@ -409,7 +409,7 @@ class Planning{
                 //msg.poses.push_back(p);
             }
 
-            cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/path.png", img);
+            cv::imwrite("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/path.png", img);
 
             //path_pub.publish(msg);
 /*
@@ -612,8 +612,7 @@ int main(int argc, char *argv[]){
     while (ros::ok()){
         //planning.publish_path();
         planning.local_path_planning();
-        ros::spinOnce();
-        loop_rate.sleep();
+        ros::spin();
     }
     return 0;
 }

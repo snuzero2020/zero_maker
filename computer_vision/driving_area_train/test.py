@@ -9,7 +9,6 @@ from data_loader.dataset import *
 import time
 import matplotlib.pyplot as plt
 import roslib
-from cv_bridge import CvBridge, CvBridgeError
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

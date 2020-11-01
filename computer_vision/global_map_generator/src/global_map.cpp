@@ -5,6 +5,7 @@
 #include <iostream>
 #include "ros/package.h"
 #include "std_msgs/Int32MultiArray.h"
+#include "global_map_generator/seg_msg.h"
 
 using namespace cv;
 using namespace std;
@@ -12,8 +13,10 @@ using namespace std;
 int IMAGE_HEIGHT = 1200;
 int IMAGE_WIDTH = 1040;
 
+int turtlebot3_node_idx = 2;
+
 int node_points_x[4] = {180, 407, 634, 861};
-int node_points_y[4] = {254, 487, 720, 953};
+int node_points_y[4] = {953, 720, 487, 254};
 
 std::string middle_matrix_file = ros::package::getPath("global_map_generator") + "/perspective_matrix_middle.txt";
 std::string right_matrix_file = ros::package::getPath("global_map_generator") + "/perspective_matrix_right.txt";
@@ -29,9 +32,11 @@ class GlobalMapPublisher
         cv::Mat M_middle = cv::Mat::zeros(3, 3, CV_64FC1);
         cv::Mat M_right = cv::Mat::zeros(3, 3, CV_64FC1);
         cv::Mat M_left = cv::Mat::zeros(3, 3, CV_64FC1);
+        ros::Subscriber seg_sub;
 
     public:
         GlobalMapPublisher(){
+            seg_sub = nh.subscribe("/seg_topic", 1 , &GlobalMapPublisher::global_map_callback, this);
             global_map_pub = nh.advertise<sensor_msgs::Image>("/global_map", 1);
             node_obstacle_info_pub = nh.advertise<std_msgs::Int32MultiArray>("/node_obstacle_info", 1);
             ROS_INFO("Glabal Map Publisher Loaded");
@@ -44,7 +49,7 @@ class GlobalMapPublisher
             }
         }
         
-        void global_map_callback(cv::Mat img_middle, cv::Mat img_right, cv::Mat img_left);
+        void global_map_callback(const global_map_generator::seg_msg::ConstPtr &msg);
         void load_birdeye_matrix();
         void calc_obstalce_info(cv::Mat global_map);
         cv::Mat birdeye(cv::Mat M, cv::Mat img);
@@ -58,8 +63,13 @@ void GlobalMapPublisher::calc_obstalce_info(cv::Mat global_map){
     for(int i=0; i<16; i++){
         for(int s_x = node_points[i][0] - 10; s_x < node_points[i][0] + 10; s_x++){
             for(int s_y = node_points[i][1] - 10; s_y < node_points[i][1] + 10; s_y++){
-                if(global_map.at<uchar>(s_y, s_x) == 255){
-                    node_info[i] = 1;
+                if(i != turtlebot3_node_idx){
+                    if(global_map.at<uchar>(s_y, s_x) == 255){
+                        node_info[i] = 1;
+                    }
+                }
+                else{
+                    global_map.at<uchar>(s_y, s_x) = 0;
                 }
             }
         }
@@ -94,7 +104,28 @@ void GlobalMapPublisher::load_birdeye_matrix(){
     }
 }
 
-void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_right, cv::Mat img_left){
+void GlobalMapPublisher::global_map_callback(const global_map_generator::seg_msg::ConstPtr &msg){
+    cv::Mat img_middle = cv::Mat::zeros(480, 640, CV_8UC1);
+    cv::Mat img_right = cv::Mat::zeros(480, 640, CV_8UC1);
+    cv::Mat img_left = cv::Mat::zeros(480, 640, CV_8UC1);
+
+    for(int h=0; h<480; h++){
+        for(int w=0; w<640; w++){
+            if(msg->data[h*640 + w] < msg->data[480*640 + h*640 + w]){
+                img_middle.at<uchar>(h,w) = 255;
+            }
+            if(msg->data[2*640*480 + h*640 + w] < msg->data[2*640*480 + 480*640 + h*640 + w]){
+                img_right.at<uchar>(h,w) = 255;
+            }
+            if(msg->data[2*2*640*480 + h*640 + w] < msg->data[2*2*640*480 + 480*640 + h*640 + w]){
+                img_left.at<uchar>(h,w) = 255;
+            }
+        }
+    }
+    imshow("img_middle", img_middle);
+    imshow("img_right", img_right);
+    imshow("img_left", img_left);
+    
     cv::Mat middle_warped = birdeye(M_middle, img_middle);
     cv::Mat right_warped = birdeye(M_right, img_right);
     cv::Mat left_warped = birdeye(M_left, img_left);
@@ -129,14 +160,12 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "global_map_pub");
-    cv::Mat img_middle = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam1/point_label_img_00005.jpg",CV_RGB2GRAY);
+    /*cv::Mat img_middle = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam1/point_label_img_00005.jpg",CV_RGB2GRAY);
     cv::Mat img_right = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam2/point_label_img_00006.jpg",CV_RGB2GRAY);
-    cv::Mat img_left = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam3/point_label_img_00005.jpg",CV_RGB2GRAY);
+    cv::Mat img_left = cv::imread(ros::package::getPath("global_map_generator") + "/img_sample/cam3/point_label_img_00005.jpg",CV_RGB2GRAY);*/
 
     GlobalMapPublisher global_map_publisher;
     global_map_publisher.load_birdeye_matrix();
-    while(ros::ok())
-        global_map_publisher.global_map_callback(img_middle, img_right, img_left);
-
+    ros::spin();
     return 0;
 }

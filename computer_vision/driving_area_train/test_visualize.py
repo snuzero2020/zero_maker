@@ -8,38 +8,67 @@ from scripts.utils import *
 from data_loader.dataset import *
 import time
 import matplotlib.pyplot as plt
+import rospy
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
+import message_filters
+from driving_area_train.msg import seg_msg
+from rospy.numpy_msg import numpy_msg
+import roslib
+
+class image_publisher:
+    def __init__(self):
+        self.USE_CUDA = torch.cuda.is_available()
+        self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        image_middle_sub = message_filters.Subscriber("/camera1/color/image_raw", Image)
+        image_right_sub = message_filters.Subscriber("/camera2/color/image_raw", Image)
+        image_left_sub = message_filters.Subscriber("/camera3/color/image_raw", Image)
+
+        self.ts = message_filters.ApproximateTimeSynchronizer([image_middle_sub, image_right_sub, image_left_sub], 1, 1, allow_headerless=True)
+        self.ts.registerCallback(self.callback)
+        self.seg_pub = rospy.Publisher('/seg_topic', numpy_msg(seg_msg), queue_size = 10)
+
+        rospy.loginfo("initialized")
+    def callback(self, middle_image, right_image, left_image):
+        bridge = CvBridge()
+
+        USE_CUDA = torch.cuda.is_available()
+        DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        seg_msg_pub = seg_msg()
+
+        model = LaneNet().to(DEVICE)
+        model.load_state_dict(torch.load(roslib.packages.get_pkg_dir("driving_area_train") + "/checkpoints/ldln_ckpt_5.pth"))
+        model.eval()
+
+        image_middle = bridge.imgmsg_to_cv2(middle_image, "bgr8")
+        image_right = bridge.imgmsg_to_cv2(right_image, "bgr8")
+        image_left = bridge.imgmsg_to_cv2(left_image, "bgr8")
+
+        image_middle = cv2.cvtColor(image_middle, cv2.COLOR_BGR2RGB)
+        image_middle = cv2.resize(image_middle, (640, 480))
+        image_middle_to = transforms.ToTensor()(image_middle)
+
+        image_right = cv2.cvtColor(image_right, cv2.COLOR_BGR2RGB)
+        image_right = cv2.resize(image_right, (640, 480))
+        image_right_to = transforms.ToTensor()(image_right)
+
+        image_left = cv2.cvtColor(image_left, cv2.COLOR_BGR2RGB)
+        image_left = cv2.resize(image_left, (640, 480))
+        image_left_to = transforms.ToTensor()(image_left)
+
+        img_input = torch.stack([image_middle_to, image_right_to, image_left_to], dim = 0).to(DEVICE)
+
+        output = model(img_input)
+
+        binary_seg = output['binary_seg']
+        binary_seg_prob = binary_seg.detach().cpu().numpy()
+        seg_msg_pub = binary_seg_prob.flatten()
+
+        self.seg_pub.publish(seg_msg_pub)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--img_path", '-i', type=str, default="/home/sunho/catkin_ws/src/zero_maker/computer_vision/driving_area_train/img/color/camera_rgb_9999.jpg", help="Path to demo img")
-    parser.add_argument("--weight_path", '-w', default = "/home/sunho/catkin_ws/src/zero_maker/computer_vision/driving_area_train/checkpoints/ldln_ckpt_5.pth", type=str, help="Path to model weights")
-    parser.add_argument("--band_width", '-b', type=float, default=1.5, help="Value of delta_v")
-    parser.add_argument("--visualize", '-v', action="store_true", default=False, help="Visualize the result")
-    opt = parser.parse_args()
-
-    USE_CUDA = torch.cuda.is_available()
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    img = cv2.imread(opt.img_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (640, 480))
-    img_to = transforms.ToTensor()(img)
-    img_to = torch.stack([img_to]).to(DEVICE)
-
-    model = LaneNet().to(DEVICE)
-    model.load_state_dict(torch.load(opt.weight_path))
-    model.eval()
-
-    start_time = time.time()
-    output = model(img_to)
-    binary_seg = output['binary_seg']
-    binary_seg_prob = binary_seg.detach().cpu().numpy()
-    binary_seg_pred = np.argmax(binary_seg_prob, axis = 1)[0]
-
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    seg_img = np.zeros_like(img)
-    seg_img[binary_seg_pred == 1] = 255
-
-    cv2.imshow("img", seg_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    rospy.init_node('image_publisher', anonymous=True)
+    img_pub = image_publisher()
+    rospy.spin()

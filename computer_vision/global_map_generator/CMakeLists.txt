@@ -12,6 +12,16 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   cv_bridge
 )
+add_message_files(
+  FILES
+  seg_msg.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+)
 
 catkin_package(
   INCLUDE_DIRS include

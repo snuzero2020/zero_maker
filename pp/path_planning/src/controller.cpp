@@ -61,7 +61,7 @@ class Controller{
     ros::Subscriber _sub_state;
     ros::Subscriber _sub_goal_point;
     ros::ServiceClient _client;
-    string target_name = "turtlebot";
+    string target_name;
     pdd cur_position;
     double cur_theta;
     double L;
@@ -78,9 +78,10 @@ class Controller{
         _sub_state = _nh.subscribe("/gazebo_model_state", 1, &Controller::callback_state, this);
         _sub_goal_point = _nh.subscribe("/tracker_goal_point", 1, &Controller::callback_goal_point, this);
         _client = _nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
-        L = 0.178;
+        target_name = "turtlebot3_burger";
+	L = 0.178;
         R = 0.033;
-        vel = 1;
+        vel = 0.2;
         now = clock();
         threshold_time = 1;
 	cnt = 0;
@@ -123,6 +124,7 @@ class Controller{
         now = clock();
         if(dt>threshold_time) return;
         pdd g = {msg->position.x, msg->position.y};
+	cout << "g: "<<g.first << ", "<<g.second<<endl;
         double d_theta = atan2(g.second-cur_position.second, g.first - cur_position.second); //desired theta
         double e_theta = d_theta - cur_theta;
         e_theta = min_abs(e_theta, e_theta+ 2* M_PI, e_theta-2*M_PI);

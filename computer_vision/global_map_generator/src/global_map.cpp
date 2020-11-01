@@ -113,6 +113,7 @@ void GlobalMapPublisher::global_map_callback(cv::Mat img_middle, cv::Mat img_rig
         cv::circle(global_map_vis, cv::Point(int(node_points[i][0]/2), int(node_points[i][1]/2)), 2, cv::Scalar(255,255,255));
     }*/
 
+    cv::imwrite(ros::package::getPath("global_map_generator") + "/global_map.png", global_map);
     imshow("global_map", global_map_vis);
 
     cv_bridge::CvImage img_bridge;
@@ -134,7 +135,7 @@ int main(int argc, char** argv)
 
     GlobalMapPublisher global_map_publisher;
     global_map_publisher.load_birdeye_matrix();
-    while(1)
+    while(ros::ok())
         global_map_publisher.global_map_callback(img_middle, img_right, img_left);
 
     return 0;

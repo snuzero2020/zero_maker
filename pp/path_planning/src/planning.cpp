@@ -7,16 +7,18 @@
 #include "nav_msgs/OccupancyGrid.h"
 #include "nav_msgs/Path.h"
 #include "std_msgs/UInt32.h"
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 
-#define boundary_distance_x 0.18
-#define boundary_distance_y 0.25
-#define global_point_distance 0.23   
+//#define boundary_distance_x 0.9
+//#define boundary_distance_y 1.27
+//#define global_point_distance 1.18   
 
-#define pixel_distance 0.01
-#define random_distance 0.04
-#define choose_parent_and_rewire_distance 0.06
-#define obstacle_check_distance 0.02
-#define goal_point_reach_distance 0.04
+#define pixel_distance 0.005
+#define random_distance 0.1
+#define choose_parent_and_rewire_distance 0.3
+#define obstacle_check_distance 0.1
+#define goal_point_reach_distance 0.3
 
 using namespace std;
 
@@ -44,7 +46,7 @@ class Planning{
 
         ros::Subscriber start_goal_obstacle_point_sub;
         ros::Publisher global_path_pub;
-        ros::Subscriber map_sub;
+        //ros::Subscriber map_sub;
         ros::Publisher path_pub;
         ros::Subscriber current_position_sub;
         ros::Publisher tracker_goal_point_pub;
@@ -54,9 +56,14 @@ class Planning{
         int goal_point_index;
         vector<int> global_path;
         vector<Point> total_path;
-        int x_l = int((global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance) ;
-        int y_l = int((global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance) ;
-        int map[ int( (global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance )][ int( (global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance )] ;
+        vector<Point> total_path_static;
+        int check = 0;
+        //int x_l = int((global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance) ;
+        //int y_l = int((global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance) ;
+        //int map[ int( (global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance )][ int( (global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance )] ;
+        int x_l = 1040;
+        int y_l = 1200;
+        int map[1040][1200];
         Point current_state;
 
     public:
@@ -65,15 +72,48 @@ class Planning{
             
             global_path_pub = nh.advertise<nav_msgs::OccupancyGrid>("path",2);
             start_goal_obstacle_point_sub = nh.subscribe("obstacle_point", 2, &Planning::StartGoalObstaclePointCallback, this);
-            map_sub = nh.subscribe("map", 2, &Planning::MapCallback, this);
+            //map_sub = nh.subscribe("map", 2, &Planning::MapCallback, this);
             path_pub = nh.advertise<nav_msgs::Path>("tracker_path", 2);
-            current_position_sub = nh.subscribe("current_path", 2, &Planning::CurrentPositionCallback, this);
+            current_position_sub = nh.subscribe("current_position", 2, &Planning::CurrentPositionCallback, this);
             tracker_goal_point_pub = nh.advertise<geometry_msgs::Pose>("tracker_goal_point", 2);
-
+/*
             for (int i = 0; i < 16; ++i){
                 global_points[i].x = (i % 4) * global_point_distance + boundary_distance_x;
                 global_points[i].y = (i / 4) * global_point_distance + boundary_distance_y;
             }
+*/
+            global_points[0].x = (180) * pixel_distance; 
+            global_points[0].y = (y_l - 953) * pixel_distance; 
+            global_points[1].x = (407) * pixel_distance; 
+            global_points[1].y = (y_l - 953) * pixel_distance; 
+            global_points[2].x = (634) * pixel_distance; 
+            global_points[2].y = (y_l - 953) * pixel_distance; 
+            global_points[3].x = (861) * pixel_distance; 
+            global_points[3].y = (y_l - 953) * pixel_distance; 
+            global_points[4].x = (180) * pixel_distance; 
+            global_points[4].y = (y_l - 720) * pixel_distance; 
+            global_points[5].x = (407) * pixel_distance; 
+            global_points[5].y = (y_l - 720) * pixel_distance; 
+            global_points[6].x = (634) * pixel_distance; 
+            global_points[6].y = (y_l - 720) * pixel_distance; 
+            global_points[7].x = (861) * pixel_distance; 
+            global_points[7].y = (y_l - 720) * pixel_distance; 
+            global_points[8].x = (180) * pixel_distance; 
+            global_points[8].y = (y_l - 487) * pixel_distance; 
+            global_points[9].x = (407) * pixel_distance; 
+            global_points[9].y = (y_l - 487) * pixel_distance; 
+            global_points[10].x = (634) * pixel_distance; 
+            global_points[10].y = (y_l - 487) * pixel_distance; 
+            global_points[11].x = (861) * pixel_distance; 
+            global_points[11].y = (y_l - 487) * pixel_distance; 
+            global_points[12].x = (180) * pixel_distance; 
+            global_points[12].y = (y_l - 254) * pixel_distance; 
+            global_points[13].x = (407) * pixel_distance; 
+            global_points[13].y = (y_l - 254) * pixel_distance; 
+            global_points[14].x = (634) * pixel_distance; 
+            global_points[14].y = (y_l - 254) * pixel_distance; 
+            global_points[15].x = (861) * pixel_distance; 
+            global_points[15].y = (y_l - 254) * pixel_distance; 
 
             global_points[0].next_point[0] = global_points + 1;
             global_points[0].next_point[1] = global_points + 4;
@@ -163,14 +203,100 @@ class Planning{
 
             global_points[start_point_index].cost = 0;
 
+            read_map();
+
             calculate_global_path();
         }
 
-        void CurrentPositionCallback(const geometry_msgs::Pose& msg){
-            current_state.pixel_x = int(msg.position.x / pixel_distance);
-            current_state.pixel_y = int(msg.position.y / pixel_distance);
+        void read_map(){
+            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            if (!img.empty()){
+                //cv::imshow("img", img);
+                //cv2::waitKey(0);
+                //cout << img.cols << " " << img.rows << endl;
+                //cout << x_l << " " << y_l << endl;
+
+                //int count1 = 0;
+                //int count2 = 0;
+
+                // 0 : can go , 255 : obstacle 
+                //cout << img.at<int>(0, 0) << endl;
+                for (int i = 0; i < x_l; ++i){
+                    for (int j = 0; j < y_l; ++j){
+                        if ( int(img.at<uchar>(j, i)) == 0){
+                            map[i][j] = 0;
+                        }
+                        else{
+                            map[i][j] = 1;
+                        }
+                    }
+                }
+
+                //img.at<uchar>(254, 180) = 255; // 12
+                //img.at<uchar>(254, 407) = 255; // 13
+                //img.at<uchar>(254, 634) = 255; // 14
+                //img.at<uchar>(254, 861) = 255; // 15
+                
+                //img.at<uchar>(487, 180) = 255; // 8
+                //img.at<uchar>(487, 407) = 255; // 9
+                //img.at<uchar>(487, 634) = 255; // 10
+                //img.at<uchar>(487, 861) = 255; // 11
+                
+                //img.at<uchar>(720, 180) = 255; // 4
+                //img.at<uchar>(720, 407) = 255; // 5
+                //img.at<uchar>(720, 634) = 255; // 6
+                //img.at<uchar>(720, 861) = 255; // 7
+                
+                //img.at<uchar>(953, 180) = 255; // 0
+                //img.at<uchar>(953, 407) = 255; // 1
+                //img.at<uchar>(953, 634) = 255; // 2
+                //img.at<uchar>(953, 861) = 255; // 3
+                //int a = y_l - int(global_points[0].y/pixel_distance);
+                //int b = int(global_points[0].x/pixel_distance);
+                //cout << a << " " << b << endl;
+                //img.at<uchar>(a,b) = 255;
+
+                //cv::Mat new_img(y_l, x_l, CV_8UC3);
+                //new_img.at<cv::Vec3b>(100, 200)[0] = 255;
+                //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
+                //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
+
+                cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+                //cv::waitKey(0);
+            }
+
+            else{
+                cout << "open failed" << endl;
+            }            
         }
 
+        void CurrentPositionCallback(const geometry_msgs::Pose& msg){
+            current_state.pixel_x = 520 - int(msg.position.y / pixel_distance);
+            current_state.pixel_y = int(msg.position.x / pixel_distance) + 600;
+            
+            int min_index;
+            
+            for (int i = 0; i < total_path_static.size(); ++i){
+                int min_len = 1000000;
+                if (distance(total_path_static[i], current_state) < min_len){
+                    min_index = i;
+                    min_len = distance(total_path_static[i], current_state);
+                }
+            }
+
+            cout << current_state << endl;
+
+            int goal_plus_index = 2;
+
+            geometry_msgs::Pose mmsg;
+
+            if ( min_index + goal_plus_index < total_path_static.size()){
+                mmsg.position.x = (total_path_static[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
+                mmsg.position.y = (520 - total_path_static[min_index + goal_plus_index].pixel_x) * pixel_distance;
+                tracker_goal_point_pub.publish(mmsg);
+            }
+        }
+/*
         void MapCallback(const nav_msgs::OccupancyGrid & msg){
             for (int i=0; i < x_l; ++i){
                 for (int j = 0; j < y_l; ++j){
@@ -178,7 +304,7 @@ class Planning{
                 }
             }
         }
-
+*/
         void calculate_global_path(){
 
             int current_cost = 0;
@@ -210,6 +336,10 @@ class Planning{
                 current_point = current_point -> parrent_point;
             }
             global_path.push_back(start_point_index);
+
+            for (int i = 0; i < global_path.size(); ++i){
+                cout << global_path[i] << endl;
+            }
 
         }
 /*
@@ -245,36 +375,62 @@ class Planning{
             nav_msgs::Path msg;
 
             reverse(total_path.begin(), total_path.end());
-/*
-            for (int i = 0; i < total_path.size(); ++i){
-                //cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
-                geometry_msgs::PoseStamped p;
-                p.pose.position.x = total_path[i].pixel_x * pixel_distance;
-                p.pose.position.y = total_path[i].pixel_y * pixel_distance;
-                p.header.seq = i;
-                msg.poses.push_back(p);
+
+            if (check == 0){
+                for (int i = 0; i < total_path.size(); ++i){
+                    total_path_static.push_back(total_path[i]);
+                }
+                check = 1;
             }
 
-            path_pub.publish(msg);
-*/
-            int min_index;
+            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+
             for (int i = 0; i < total_path.size(); ++i){
+                cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
+                
+                int a = y_l - total_path[i].pixel_y;
+                int b = total_path[i].pixel_x;
+                //cout << a << " " << b << endl;
+                img.at<uchar>(a-1,b-1) = 255;
+                img.at<uchar>(a-1,b) = 255;
+                img.at<uchar>(a-1,b+1) = 255;
+                img.at<uchar>(a,b-1) = 255;
+                img.at<uchar>(a,b) = 255;
+                img.at<uchar>(a,b+1) = 255;
+                img.at<uchar>(a+1,b-1) = 255;
+                img.at<uchar>(a+1,b) = 255;
+                img.at<uchar>(a,b+1) = 255;
+
+                //geometry_msgs::PoseStamped p;
+                //p.pose.position.x = total_path[i].pixel_x * pixel_distance;
+                //p.pose.position.y = total_path[i].pixel_y * pixel_distance;
+                //p.header.seq = i;
+                //msg.poses.push_back(p);
+            }
+
+            cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+
+            //path_pub.publish(msg);
+/*
+            int min_index;
+            for (int i = 0; i < total_path_static.size(); ++i){
                 int min_len = 1000000;
-                if (distance(total_path[i], current_state) < min_len){
+                if (distance(total_path_static[i], current_state) < min_len){
                     min_index = i;
-                    min_len = distance(total_path[i], current_state);
+                    min_len = distance(total_path_static[i], current_state);
                 }
             }
 
-            int goal_plus_index = 4;
+            int goal_plus_index = 1;
 
             geometry_msgs::Pose mmsg;
 
-            if ( min_index + goal_plus_index < total_path.size()){
-                mmsg.position.x = total_path[min_index + goal_plus_index].pixel_x * pixel_distance;
-                mmsg.position.y = total_path[min_index + goal_plus_index].pixel_y * pixel_distance;
+            if ( min_index + goal_plus_index < total_path_static.size()){
+                mmsg.position.x = (total_path_static[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
+                mmsg.position.y = (520 - total_path_static[min_index + goal_plus_index].pixel_x) * pixel_distance;
                 tracker_goal_point_pub.publish(mmsg);
             }
+*/
             //cout << "-----------------------------------------" << endl;
 
         }

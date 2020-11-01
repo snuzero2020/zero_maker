@@ -15,10 +15,10 @@
 //#define global_point_distance 1.18   
 
 #define pixel_distance 0.005
-#define random_distance 0.1
-#define choose_parent_and_rewire_distance 0.3
-#define obstacle_check_distance 0.1
-#define goal_point_reach_distance 0.3
+#define random_distance 0.02
+#define choose_parent_and_rewire_distance 0.1
+#define obstacle_check_distance 0.005
+#define goal_point_reach_distance 0.04
 
 using namespace std;
 
@@ -261,7 +261,7 @@ class Planning{
                 //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
                 //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
 
-                cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+                //cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
                 //cv::waitKey(0);
             }
 
@@ -275,6 +275,7 @@ class Planning{
             current_state.pixel_y = int(msg.position.x / pixel_distance) + 600;
             
             int min_index;
+            int min_len;
             
             for (int i = 0; i < total_path_static.size(); ++i){
                 int min_len = 1000000;
@@ -284,7 +285,7 @@ class Planning{
                 }
             }
 
-            cout << current_state << endl;
+            cout << min_len << endl;
 
             int goal_plus_index = 2;
 
@@ -408,7 +409,7 @@ class Planning{
                 //msg.poses.push_back(p);
             }
 
-            cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+            cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/path.png", img);
 
             //path_pub.publish(msg);
 /*

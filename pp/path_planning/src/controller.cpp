@@ -82,6 +82,7 @@ class Controller{
 	L = 0.178;
         R = 0.033;
         vel = 0.2;
+	P_gain = 1.0;
         now = clock();
         threshold_time = 1;
 	cnt = 0;
@@ -125,10 +126,12 @@ class Controller{
         if(dt>threshold_time) return;
         pdd g = {msg->position.x, msg->position.y};
 	cout << "g: "<<g.first << ", "<<g.second<<endl;
-        double d_theta = atan2(g.second-cur_position.second, g.first - cur_position.second); //desired theta
+        double d_theta = atan2(g.second-cur_position.second, g.first - cur_position.first); //desired theta
         double e_theta = d_theta - cur_theta;
         e_theta = min_abs(e_theta, e_theta+ 2* M_PI, e_theta-2*M_PI);
+	cout << "e_theta: "<< e_theta << endl;
         double d_omega = P_gain * e_theta; //desired_omega
+        cout << "desired omega: "<<d_omega<<endl;
 
         geometry_msgs::Pose next;
         next.position.x = cur_position.first + vel*cos(cur_theta)*dt;

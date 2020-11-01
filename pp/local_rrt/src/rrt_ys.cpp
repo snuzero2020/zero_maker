@@ -21,8 +21,6 @@ using namespace std;
 #define p_route 3
 
  
-
-
 #define getdis(x, y, ax, ay) sqrt((x-ax)*(x-ax) + (y-ay)*(y-ay))
 
 namespace ys{
@@ -618,6 +616,7 @@ class tracker_path{ //이 class는 tracker에 전달할 path를 publish 하는 �
             geometry_msgs::PoseStamped p;
             p.pose.position.x = x;
             p.pose.position.y = y;
+			std::cout << x << " , " << y << std::endl;
             route.poses.push_back(p);
         }
         void send()
@@ -638,10 +637,12 @@ void pathCallback(const nav_msgs::OccupancyGrid& msg)
 			sx = msg.data[]
 		}
 	}*/
-	sx = msg.data[0];
-	sy = msg.data[1];
-	gx = msg.data[2];
-	gy = msg.data[3];
+	sx = double(msg.data[0]) / 100.0;
+	sy = double(msg.data[1]) / 100.0;
+	gx = double(msg.data[2]) / 100.0;
+	gy = double(msg.data[3]) / 100.0;
+
+	//std::cout << sx << " " << sy << " " << gx << " " << gy << std::endl;
 }
 
 int main(int argc, char *argv[]){
@@ -671,8 +672,8 @@ int main(int argc, char *argv[]){
             }
         }
 
-		map[sx][sy] = p_route;
-		map[gx][gy] = p_goal;
+		map[int(sx/pixel_distance)][int(sy/pixel_distance)] = p_route;
+		map[int(gx/pixel_distance)][int(gy/pixel_distance)] = p_goal;
 
 		vector<ys::point> route = rrt.rrtstar(map, sx, sy, gx, gy);
 		 

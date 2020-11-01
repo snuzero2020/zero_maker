@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+from string import Template
+import numpy as np
+import rospy
+from geometry_msgs.msg import Pose, Point, Quaternion
+from std_msgs.msg import Int32
+from gazebo_msgs.srv import SpawnModel, SpawnModelRequest
+from gazebo_msgs.srv import DeleteModel, DeleteModelRequest
+from tf.transformations import quaternion_from_euler
+import math
+import random
+import time
+from sensor_msgs.msg import Image, CameraInfo
+from gazebo_msgs.msg import ModelStates
+from image_geometry import PinholeCameraModel
+import cv2
+from cv_bridge import CvBridge
+from scipy.spatial.transform import Rotation as R
+import json
+import os
+
+
+def sq(x):
+    return x*x
+
+def dist(a, b):
+    return math.sqrt(sq(a.x-b.x)+sq(a.y-b.y)+sq(a.z-b.z))
+
+class DopeEvaluator:
+    def __init__(self):
+        self._sub_truth = rospy.Subscriber('/location_truth', Point, self.callback_truth)
+        self._sub_estimated = rospy.Subscriber('/estimated', Point, self.callback_estimated)
+        self._truth = []
+        self._estimated = []
+        self._tcnt = 0
+        self._ecnt = 0
+
+    def callback_truth(self, msg):
+        self._truth.append(msg)
+        self._tcnt = self._tcnt + 1
+
+
+    def callback_estimated(self, msg):
+        self._estimated.append(msg)
+        self._ecnt = self._ecnt + 1
+        
+        if(math.fabs(self._ecnt-self._tcnt) > 1):
+            rospy.loginfo("ERROR, tcnt and ecnt are different")
+        
+        sum = 0.0
+        n = min(self._tcnt, self._ecnt)
+        if(n%100 == 0 and n>0):
+            for i in range(0, n):
+                sum = sum + dist(self._truth[i], self._estimated[i])
+                sum = sum / n
+            rospy.loginfo(str(n)+" data average location difference : "+str(sum))
+        

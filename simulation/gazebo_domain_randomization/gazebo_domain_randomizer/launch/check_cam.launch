@@ -14,5 +14,4 @@
 <node name="spawn_urdf3" pkg="gazebo_ros" type="spawn_model" args="-x -1.5 -y -2.5 -z 1.5 -sdf -P 0.8 -Y 1.0467 -R 0 -param camera_description3 -model depth_camera3" respawn="false" output="screen"/>
 
 
-
 </launch>

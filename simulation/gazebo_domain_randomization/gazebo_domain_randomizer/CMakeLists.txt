@@ -9,4 +9,5 @@ catkin_package(
   CATKIN_DEPENDS
   gazebo_msgs
   std_msgs
+  rospkg
 )

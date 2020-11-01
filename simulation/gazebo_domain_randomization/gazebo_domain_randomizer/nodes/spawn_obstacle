@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+from string import Template
+import numpy as np
+import rospy
+from geometry_msgs.msg import Pose, Point, Quaternion
+from gazebo_msgs.srv import SpawnModel, SpawnModelRequest
+from gazebo_msgs.srv import DeleteModel, DeleteModelRequest
+from tf.transformations import quaternion_from_euler
+import math
+import random
+
+PI = math.pi
+
+_obj_sdf = """\
+<?xml version='1.0'?>
+<sdf version="1.4">
+<model name=$model_name>
+  <static>true</static>
+    <link name="link">
+      <visual name="visual">
+        <geometry>$obj_shape</geometry>
+        <material>
+          <script>
+            <name>$material_color</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
+"""
+
+_shape_list = {'cafe_table': Template("<mesh><uri>model://cafe_table/meshes/cafe_table.dae</uri></mesh>"),
+               'box': Template("<box><size>$sx $sy $sz</size></box>"),
+               'cylinder': Template("<cylinder><radius>$cr</radius><length>$cl</length></cylinder>"),
+               'sphere': Template("<sphere><radius>$sr</radius></sphere>")}
+
+_material_list = ['Gazebo/White',
+                  'Gazebo/Grey',
+                  'Gazebo/Eyes',
+                  'Gazebo/FlatBlack',
+                  'Gazebo/Black',
+                  'Gazebo/Red',
+                  'Gazebo/Green',
+                  'Gazebo/Yellow',
+                  'Gazebo/Purple',
+                  'Gazebo/Turquoise',
+                  'Gazebo/WhiteEmissive',
+                  'Gazebo/RedEmissive',
+                  'Gazebo/GreenEmissive',
+                  'Gazebo/PurpleEmissive',
+                  'Gazebo/BlueLaser',
+                  'Gazebo/BlueEmissive',
+                  'Gazebo/JointAnchor',
+                  'Gazebo/Blue',
+                  'Gazebo/Skull',
+                  'Gazebo/ExclamationPoint',
+                  'Gazebo/QuestionMark',
+                  'Gazebo/SmileyHappy',
+                  'Gazebo/SmileySad',
+                  'Gazebo/SmileyDead',
+                  'Gazebo/SmileyPlain',
+                  'Gazebo/WoodFloor',
+                  'Gazebo/CeilingTiled',
+                  'Gazebo/PaintedWall',
+                  'Gazebo/PioneerBody',
+                  'Gazebo/Pioneer2Body',
+                  'Gazebo/Gold',
+                  'Gazebo/CloudySky',
+                  'Gazebo/RustySteel',
+                  'Gazebo/Chrome',
+                  'Gazebo/BumpyMetal',
+                  'Gazebo/GrayGrid',
+                  'Gazebo/Rocky',
+                  'Gazebo/GrassFloor',
+                  'Gazebo/Rockwall',
+                  'Gazebo/RustyBarrel',
+                  'Gazebo/WoodPallet',
+                  'Gazebo/Fish',
+                  'Gazebo/LightWood',
+                  'Gazebo/WoodTile',
+                  'Gazebo/Brick',
+                  'Gazebo/RedTransparent',
+                  'Gazebo/GreenTransparent',
+                  'Gazebo/BlueTransparent',
+                  'Gazebo/DepthMap',
+                  'Gazebo/PCBGreen',
+                  'Gazebo/Turret',
+                  'Gazebo/EpuckBody',
+                  'Gazebo/EpuckRing',
+                  'Gazebo/EpuckPlate',
+                  'Gazebo/EpuckLogo',
+                  'Gazebo/EpuckMagenta',
+                  'Gazebo/EpuckGold']
+
+class Spawner:
+    def __init__(self, gazebo_ns='/gazebo'):
+        self._sdf_temp = Template(_obj_sdf)
+        self._spawn_model = rospy.ServiceProxy(gazebo_ns + '/spawn_sdf_model', SpawnModel)
+        self._info = []
+        #rospack = rospkg.Rospack()
+        #self._file_path = rospack.get_path('gazebo_domain_randomizer')+'/config/spawn.txt'
+        self._file_path = '/home/jeongwoooh/catkin_ws/src/zero_maker/config/spawn.txt'
+
+    def load_data(self):
+        rospy.loginfo('loading spawn txt data')
+        with open(self._file_path, "r") as file:
+            lines = file.readlines()
+        for line in lines:
+            tokens = line.split(',',-1)
+            cur = []
+            cur.append(float(tokens[0]))
+            cur.append(float(tokens[1]))
+            cur.append(int(tokens[2]))
+            t = int(tokens[2])
+            if t == 0:
+                # none
+                continue
+            elif t ==1:
+                # sphere
+                cur.append(float(tokens[3])) #r
+            elif t==2:
+                # cylinder
+                cur.append(float(tokens[3])) #r
+                cur.append(float(tokens[4])) #h
+            else:
+                cur.append(float(tokens[3])) #x
+                cur.append(float(tokens[4])) #y
+                cur.append(float(tokens[5])) #z
+            self._info.append(cur)             
+        rospy.loginfo('complete to load spawn txt data')   
+
+
+    def spawn(self):
+        cnt = 0
+        rospy.loginfo('start to spawn obstacles')
+        for cur in self._info:
+            cnt = cnt +1
+            obj_name = 'obj' + str(cnt)
+            a = cur[0]
+            b = cur[1]
+            shape_no = cur[2]
+            z = 0.0
+            if shape_no == 0:
+                continue
+            elif shape_no == 1:
+                sr = cur[3]
+                z = sr
+                shape_sdf = _shape_list['sphere'].substitute(sr=str(sr))
+            elif shape_no == 2:
+                cr = cur[3]
+                cl = cur[4]
+                z = cl/2.0
+                shape_sdf = _shape_list['cylinder'].substitute(cr=str(cr),cl=str(cl))
+            else:
+                sx = cur[3]
+                sy = cur[4]
+                sz = cur[5]
+                z = sz /2.0
+                shape_sdf = _shape_list['box'].substitute(sx=str(sx),sy=str(sy),sz=str(sz))
+            req = SpawnModelRequest()
+            req.model_name = obj_name
+            req.model_xml = self._sdf_temp.substitute(model_name = obj_name, obj_shape=shape_sdf, material_color=np.random.choice(_material_list))
+            r = 0.0
+            p = 0.0
+            y = random.uniform(-math.pi, math.pi)
+            q = quaternion_from_euler(r,p,y)
+            req.initial_pose = Pose(position=Point(a,b,z), orientation=Quaternion(q[0],q[1],q[2],q[3]))
+            print(req)
+            res= self._spawn_model(req)
+            print(res)
+        rospy.loginfo('complete to spawn obstacles')
+            
+
+
+if __name__ == "__main__":
+    rospy.init_node("object_spawner")
+    spawner = Spawner(gazebo_ns='/gazebo')
+    spawner.load_data()
+    spawner.spawn()
+    rospy.spin()

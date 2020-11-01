@@ -27,11 +27,17 @@
   <build_depend>gazebo_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>gazebo_ext_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>roslib</build_depend>
   <run_depend>rospy</run_depend>
   <run_depend>gazebo_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>gazebo_ext_msgs</run_depend>
-
+  <run_depend>roscpp</run_depend>
+  <run_depend>roslib</run_depend>
+  <run_depend>rospkg</run_depend>
+  
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

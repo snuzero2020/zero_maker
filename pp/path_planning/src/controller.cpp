@@ -75,7 +75,7 @@ class Controller{
     public:
     Controller(){
         _pub = _nh.advertise<geometry_msgs::Pose>("/current_position", 10);
-        _sub_state = _nh.subscribe("/gazebo_model_state", 1, &Controller::callback_state, this);
+        _sub_state = _nh.subscribe("/gazebo/model_states", 1, &Controller::callback_state, this);
         _sub_goal_point = _nh.subscribe("/tracker_goal_point", 1, &Controller::callback_goal_point, this);
         _client = _nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
         target_name = "turtlebot3_burger";

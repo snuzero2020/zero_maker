@@ -51,6 +51,7 @@ class Planning{
         ros::Subscriber current_position_sub;
         ros::Publisher tracker_goal_point_pub;
 
+
         Point global_points[16];
         int start_point_index;
         int goal_point_index;
@@ -209,7 +210,7 @@ class Planning{
         }
 
         void read_map(){
-            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat img = cv::imread("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
             if (!img.empty()){
                 //cv::imshow("img", img);
                 //cv2::waitKey(0);
@@ -261,7 +262,7 @@ class Planning{
                 //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
                 //new_img.at<cv::Vec3b>(100, 200)[1] = 0;
 
-                cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+                cv::imwrite("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
                 //cv::waitKey(0);
             }
 
@@ -382,7 +383,7 @@ class Planning{
                 check = 1;
             }
 
-            cv::Mat img = cv::imread("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
+            cv::Mat img = cv::imread("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/global_map.png", CV_LOAD_IMAGE_GRAYSCALE);
 
             for (int i = 0; i < total_path.size(); ++i){
                 cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
@@ -407,7 +408,7 @@ class Planning{
                 //msg.poses.push_back(p);
             }
 
-            cv::imwrite("/home/lee/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
+            cv::imwrite("/home/jeongwoooh/catkin_ws/src/zero_maker/computer_vision/global_map_generator/new_map.png", img);
 
             //path_pub.publish(msg);
 /*

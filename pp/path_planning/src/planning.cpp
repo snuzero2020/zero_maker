@@ -395,8 +395,8 @@ class Planning{
             geometry_msgs::Pose mmsg;
 
             if ( min_index + goal_plus_index < total_path.size()){
-                mmsg.position.x = total_path[min_index + goal_plus_index].pixel_x * pixel_distance;
-                mmsg.position.y = total_path[min_index + goal_plus_index].pixel_y * pixel_distance;
+                mmsg.position.x = (total_path[min_index + goal_plus_index].pixel_y - 600) * pixel_distance;
+                mmsg.position.y = (520 - total_path[min_index + goal_plus_index].pixel_x) * pixel_distance;
                 tracker_goal_point_pub.publish(mmsg);
             }
             //cout << "-----------------------------------------" << endl;

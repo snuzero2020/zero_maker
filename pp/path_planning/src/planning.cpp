@@ -41,10 +41,13 @@ struct Point {
 class Planning{
     private:
         ros::NodeHandle nh;
+
         ros::Subscriber start_goal_obstacle_point_sub;
         ros::Publisher global_path_pub;
         ros::Subscriber map_sub;
         ros::Publisher path_pub;
+        ros::Subscriber current_position_sub;
+        ros::Publisher tracker_goal_point_pub;
 
         Point global_points[16];
         int start_point_index;
@@ -54,14 +57,18 @@ class Planning{
         int x_l = int((global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance) ;
         int y_l = int((global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance) ;
         int map[ int( (global_point_distance * 3 + 2 * boundary_distance_x)/ pixel_distance )][ int( (global_point_distance * 3 + 2 * boundary_distance_y)/ pixel_distance )] ;
+        Point current_state;
 
     public:
+
         Planning(){
             
             global_path_pub = nh.advertise<nav_msgs::OccupancyGrid>("path",2);
             start_goal_obstacle_point_sub = nh.subscribe("obstacle_point", 2, &Planning::StartGoalObstaclePointCallback, this);
             map_sub = nh.subscribe("map", 2, &Planning::MapCallback, this);
             path_pub = nh.advertise<nav_msgs::Path>("tracker_path", 2);
+            current_position_sub = nh.subscribe("current_path", 2, &Planning::CurrentPositionCallback, this);
+            tracker_goal_point_pub = nh.advertise<geometry_msgs::Pose>("tracker_goal_point", 2);
 
             for (int i = 0; i < 16; ++i){
                 global_points[i].x = (i % 4) * global_point_distance + boundary_distance_x;
@@ -159,6 +166,11 @@ class Planning{
             calculate_global_path();
         }
 
+        void CurrentPositionCallback(const geometry_msgs::Pose& msg){
+            current_state.pixel_x = int(msg.position.x / pixel_distance);
+            current_state.pixel_y = int(msg.position.y / pixel_distance);
+        }
+
         void MapCallback(const nav_msgs::OccupancyGrid & msg){
             for (int i=0; i < x_l; ++i){
                 for (int j = 0; j < y_l; ++j){
@@ -233,7 +245,7 @@ class Planning{
             nav_msgs::Path msg;
 
             reverse(total_path.begin(), total_path.end());
-
+/*
             for (int i = 0; i < total_path.size(); ++i){
                 //cout << total_path[i].pixel_x << " " << total_path[i].pixel_y << " "  << total_path[i].ccost << endl;
                 geometry_msgs::PoseStamped p;
@@ -244,8 +256,25 @@ class Planning{
             }
 
             path_pub.publish(msg);
+*/
+            int min_index;
+            for (int i = 0; i < total_path.size(); ++i){
+                int min_len = 1000000;
+                if (distance(total_path[i], current_state) < min_len){
+                    min_index = i;
+                    min_len = distance(total_path[i], current_state);
+                }
+            }
 
+            int goal_plus_index = 4;
 
+            geometry_msgs::Pose mmsg;
+
+            if ( min_index + goal_plus_index < total_path.size()){
+                mmsg.position.x = total_path[min_index + goal_plus_index].pixel_x * pixel_distance;
+                mmsg.position.y = total_path[min_index + goal_plus_index].pixel_y * pixel_distance;
+                tracker_goal_point_pub.publish(mmsg);
+            }
             //cout << "-----------------------------------------" << endl;
 
         }

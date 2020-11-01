@@ -284,7 +284,6 @@ class Planning{
                 }
             }
 
-            cout << current_state << endl;
 
             int goal_plus_index = 2;
 

@@ -70,22 +70,27 @@ class Controller{
     double vel;
     clock_t now;
     double threshold_time;
+    int cnt;
 
     public:
     Controller(){
         _pub = _nh.advertise<geometry_msgs::Pose>("/current_position", 10);
         _sub_state = _nh.subscribe("/gazebo_model_state", 1, &Controller::callback_state, this);
         _sub_goal_point = _nh.subscribe("/tracker_goal_point", 1, &Controller::callback_goal_point, this);
-        _client = _nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/SetModelState");
+        _client = _nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
         L = 0.178;
         R = 0.033;
         vel = 1;
         now = clock();
         threshold_time = 1;
+	cnt = 0;
     }
 
     void callback_state(const gazebo_msgs::ModelStates::ConstPtr& msg){
-        geometry_msgs::Pose rt;
+        cnt ++;
+	if(cnt%100 > 0) return;
+	cnt =0;
+	geometry_msgs::Pose rt;
         int size = msg->name.size();
         int index = -1;
         int i;

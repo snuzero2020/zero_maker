@@ -3,6 +3,7 @@ project(path_planning)
 
 
 find_package(catkin REQUIRED COMPONENTS
+  gazebo_msgs
   geometry_msgs
   nav_msgs
   roscpp
@@ -14,7 +15,7 @@ find_package(OpenCV 3 REQUIRED)
 
 catkin_package(
   #INCLUDE_DIRS include
-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
+  CATKIN_DEPENDS geometry_msgs gazebo_msgs nav_msgs roscpp rospy std_msgs
   DEPENDS system_lib
 )
 
@@ -36,3 +37,7 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
  target_link_libraries(${PROJECT_NAME}_node
    ${OpenCV_LIBS}
 )
+
+add_executable(controller src/controller.cpp)
+target_link_libraries(controller ${catkin_LIBRARIES})
+add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
